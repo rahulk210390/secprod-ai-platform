@@ -1,0 +1,68 @@
+# OTel Collector: receives spans from vLLM (gRPC) and the app (HTTP), scrubs
+# PII as defence-in-depth, and forwards to Langfuse over OTLP/HTTP.
+#
+# Langfuse's OTLP endpoint accepts HTTP (protobuf/JSON) only — never gRPC —
+# which is exactly why vLLM's gRPC exporter has to come through here.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317      # vLLM --otlp-traces-endpoint
+      http:
+        endpoint: 0.0.0.0:4318      # secai app / any OTLP-HTTP client
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 1500
+    spike_limit_mib: 512
+
+  # Defence in depth. The app masks PII before export (secai/telemetry/pii.py);
+  # this guarantees borrower-level attributes never reach Langfuse even if a
+  # code path forgets to.
+  attributes/pii:
+    actions:
+      - { key: borrower_id, action: delete }
+      - { key: borrower_name, action: delete }
+      - { key: borrower_address, action: delete }
+      - { key: account_number, action: delete }
+      - { key: loan_number, action: delete }
+      - { key: ssn, action: delete }
+      - { key: national_id, action: delete }
+      - { key: email, action: delete }
+      - { key: phone, action: delete }
+
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+
+exporters:
+  otlphttp/langfuse:
+    endpoint: ${env:LANGFUSE_HOST}/api/public/otel
+    headers:
+      Authorization: "Basic ${env:LANGFUSE_AUTH}"
+      # Without this header Langfuse v4 can delay ingestion by up to 15 minutes.
+      x-langfuse-ingestion-version: "4"
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+
+  debug:
+    verbosity: ${env:OTEL_DEBUG_VERBOSITY}
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/pii, batch]
+      exporters: [otlphttp/langfuse, debug]
+  telemetry:
+    logs:
+      level: info

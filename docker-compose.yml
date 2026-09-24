@@ -1,0 +1,254 @@
+# secai local stack: vLLM + Postgres + OTel Collector + self-hosted Langfuse.
+#
+#   make up        start everything (vLLM included; needs an NVIDIA GPU)
+#   make up-core   start everything except vLLM (no GPU required)
+#
+# Langfuse v3 needs Postgres, ClickHouse, Redis and S3-compatible storage, so
+# the stack below is the official topology plus our app Postgres and Collector.
+
+name: secai
+
+x-langfuse-env: &langfuse-env
+  DATABASE_URL: postgresql://langfuse:${LANGFUSE_POSTGRES_PASSWORD:-langfuse}@langfuse-postgres:5432/langfuse
+  SALT: ${LANGFUSE_SALT:?set LANGFUSE_SALT in .env}
+  ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:?set LANGFUSE_ENCRYPTION_KEY in .env (64 hex chars)}
+  CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+  CLICKHOUSE_URL: http://clickhouse:8123
+  CLICKHOUSE_USER: default
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse}
+  CLICKHOUSE_CLUSTER_ENABLED: "false"
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_AUTH: ${REDIS_PASSWORD:-redis}
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-miniosecret}
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+  TELEMETRY_ENABLED: "false"
+  # Both images bind to $HOSTNAME, which defaults to the container id —
+  # that leaves 127.0.0.1 refused and the healthchecks failing.
+  HOSTNAME: "0.0.0.0"
+
+services:
+  # --------------------------------------------------------------- app store
+  postgres:
+    image: postgres:16-alpine
+    container_name: secai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: secai
+      POSTGRES_PASSWORD: ${SECAI_DB_PASSWORD:-secai}
+      POSTGRES_DB: secai
+    ports:
+      - "5433:5432"
+    volumes:
+      - secai-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U secai -d secai"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ----------------------------------------------------------- langfuse deps
+  langfuse-postgres:
+    image: postgres:16-alpine
+    container_name: secai-langfuse-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: ${LANGFUSE_POSTGRES_PASSWORD:-langfuse}
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: secai-clickhouse
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse}
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - clickhouse-logs:/var/log/clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: valkey/valkey:8-alpine
+    container_name: secai-redis
+    restart: unless-stopped
+    command: ["--requirepass", "${REDIS_PASSWORD:-redis}", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli -a ${REDIS_PASSWORD:-redis} ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: secai-minio
+    restart: unless-stopped
+    entrypoint: ["sh", "-c", "mkdir -p /data/langfuse && exec minio server /data --console-address :9001"]
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-miniosecret}
+    ports:
+      - "9091:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ---------------------------------------------------------------- langfuse
+  langfuse-web:
+    image: langfuse/langfuse:3
+    container_name: secai-langfuse-web
+    restart: unless-stopped
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:?set LANGFUSE_NEXTAUTH_SECRET in .env}
+      # Provision the org/project/user and the API key pair on first boot, so
+      # the keys in .env work immediately without clicking through the UI.
+      LANGFUSE_INIT_ORG_ID: secai
+      LANGFUSE_INIT_ORG_NAME: secai
+      LANGFUSE_INIT_PROJECT_ID: secai-dev
+      LANGFUSE_INIT_PROJECT_NAME: secai-dev
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:?set LANGFUSE_PUBLIC_KEY in .env}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:?set LANGFUSE_SECRET_KEY in .env}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-dev@secai.local}
+      LANGFUSE_INIT_USER_NAME: secai dev
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-secaidevpassword}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/public/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  # langfuse-web owns the Postgres migrations, so the worker waits on it.
+  # Started the other way round, the worker spins on missing tables.
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    container_name: secai-langfuse-worker
+    restart: unless-stopped
+    depends_on:
+      langfuse-web:
+        condition: service_healthy
+    environment:
+      <<: *langfuse-env
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3030/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # --------------------------------------------------------------- telemetry
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.115.1
+    container_name: secai-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel/config.yaml"]
+    depends_on:
+      langfuse-web:
+        condition: service_healthy
+    environment:
+      # Inside the compose network Langfuse is reachable by service name.
+      LANGFUSE_HOST: ${LANGFUSE_INTERNAL_HOST:-http://langfuse-web:3000}
+      LANGFUSE_AUTH: ${LANGFUSE_AUTH:?run 'make langfuse-auth' and set LANGFUSE_AUTH in .env}
+      OTEL_DEBUG_VERBOSITY: ${OTEL_DEBUG_VERBOSITY:-basic}
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - "4317:4317"   # gRPC  (vLLM)
+      - "4318:4318"   # HTTP  (secai app)
+      - "13133:13133" # health
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "--version"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # -------------------------------------------------------------------- vLLM
+  # Requires an NVIDIA GPU with enough VRAM for VLLM_MODEL. Use `make up-core`
+  # to bring up everything else without it.
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: secai-vllm
+    restart: unless-stopped
+    depends_on:
+      otel-collector:
+        condition: service_started
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+      OTEL_EXPORTER_OTLP_TRACES_INSECURE: "true"
+    command:
+      - --model=${VLLM_MODEL:-Qwen/Qwen2.5-7B-Instruct-AWQ}
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=${VLLM_MAX_MODEL_LEN:-8192}
+      - --gpu-memory-utilization=${VLLM_GPU_MEMORY_UTILIZATION:-0.90}
+      - --tensor-parallel-size=${VLLM_TENSOR_PARALLEL_SIZE:-1}
+      - --enable-prefix-caching
+      - --otlp-traces-endpoint=http://otel-collector:4317
+      - --collect-detailed-traces=all
+    ports:
+      - "8000:8000"
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8000/health\")'"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 300s
+
+volumes:
+  secai-postgres:
+  langfuse-postgres:
+  clickhouse-data:
+  clickhouse-logs:
+  minio-data:
+  huggingface-cache:

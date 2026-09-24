@@ -1,0 +1,110 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "secai"
+version = "0.1.0"
+description = "AI platform for securitised products document workflows (vLLM + Langfuse/OTel)"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { text = "Proprietary" }
+
+dependencies = [
+    # config & schemas
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    # api
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    # llm
+    "openai>=1.55",
+    "tenacity>=9.0",
+    "httpx>=0.27",
+    # storage
+    "sqlalchemy>=2.0.36",
+    "alembic>=1.14",
+    "psycopg[binary]>=3.2",
+    # observability
+    "langfuse>=4.7.0",
+    "opentelemetry-sdk>=1.29",
+    "opentelemetry-api>=1.29",
+    "opentelemetry-exporter-otlp-proto-http>=1.29",
+    "opentelemetry-instrumentation-httpx>=0.50b0",
+    # cli
+    "typer>=0.15",
+]
+
+[project.optional-dependencies]
+# JOB-03 pulls these in; kept optional so the base install stays light.
+parsing = [
+    "docling>=2.15",
+    "pdfplumber>=0.11",
+    "openpyxl>=3.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "respx>=0.21",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pre-commit>=4.0",
+    "types-requests",
+]
+
+[project.scripts]
+secai = "secai.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/secai"]
+
+# ----------------------------------------------------------------------------
+# tooling
+# ----------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF", "ANN", "T20"]
+ignore = ["ANN401"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "S101"]
+# Operator-facing helper scripts: stdout is the interface.
+"scripts/**" = ["T201"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["langfuse.*", "docling.*", "pdfplumber.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+asyncio_mode = "auto"
+markers = [
+    "integration: hits live services (vLLM, Postgres, OTel collector) via docker-compose",
+    "eval: gold-set evaluation runs",
+]
+
+[tool.coverage.run]
+source = ["src/secai"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]

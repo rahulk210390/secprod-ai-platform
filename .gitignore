@@ -1,0 +1,34 @@
+# secrets & local env
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+
+# tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# runtime artefacts
+eval/reports/*
+!eval/reports/.gitkeep
+data/samples/*
+!data/samples/.gitkeep
+.docker-volumes/
+*.log
+
+# editors / os
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
