@@ -46,23 +46,61 @@ _DEFAULT_KEY_HINTS: Final = (
     "dob",
 )
 
-# Textual patterns. Deliberately conservative: a false positive costs a
-# redacted string in a trace, a false negative leaks borrower data.
+# Textual patterns.
+#
+# Langfuse serialises observation inputs and outputs to a JSON *string* before
+# the mask hook runs, so these patterns see whole documents — deal terms
+# included. That cuts both ways: a naive "long run of digits" rule redacts
+# tranche balances (250000000 is nine digits), destroying the very data the
+# traces exist to show. Account and loan numbers are therefore matched only
+# where they are *structurally* identifiable — keyword-anchored or
+# separator-grouped — never as bare integers. Bare identifiers are caught by
+# field name instead (``_DEFAULT_KEY_HINTS``), which is how they actually
+# appear in our payloads.
 _PATTERNS: Final[tuple[tuple[str, Pattern[str]], ...]] = (
     ("email", re.compile(r"\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b")),
     # US SSN and similar 3-2-4 groupings.
     ("ssn", re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),
     # IBAN.
     ("iban", re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b")),
-    # Long digit runs (account / loan / card numbers): 8+ digits, optionally
-    # separated by spaces or dashes. Short numbers are left alone so balances,
-    # percentages and years survive.
-    ("account_number", re.compile(r"\b(?:\d[ -]?){8,}\d\b")),
-    # Phone numbers in international or grouped form.
+    # "account no. 1234567890", "loan #A-55231099887", "card number 4485 ...".
+    (
+        "keyed_identifier",
+        re.compile(
+            r"(?i)\b(?:account|acct|loan|card|policy|customer|member)\s*"
+            r"(?:no\.?|number|num|id|#)?\s*[:#]?\s*"
+            r"[A-Z]{0,4}-?\d[\d -]{4,}\d"
+        ),
+    ),
+    # Phone numbers in international form.
     ("phone", re.compile(r"(?<![\w.])\+\d[\d ().-]{7,}\d(?![\w.])")),
 )
 
+# Separator-grouped digit runs (card/account style: 4485-2938-1029-3847).
+# Validated in code rather than by the pattern alone, so ISO dates and
+# formatted money survive — see :func:`_is_identifier_like`.
+_GROUPED_DIGITS: Final = re.compile(r"\b\d{2,6}(?:[ -]\d{2,6}){2,}\b")
+
+# Below this many digits, a grouped run is a date, a reference or a formatted
+# figure rather than an account number.
+_MIN_IDENTIFIER_DIGITS: Final = 10
+
+_DATE_LIKE: Final = re.compile(r"(19|20)\d{2}[ -]\d{1,2}[ -]\d{1,2}")
+
 _MAX_DEPTH: Final = 20
+
+
+def _is_identifier_like(candidate: str) -> bool:
+    """True if a separator-grouped digit run is plausibly an account number.
+
+    Rejects ISO dates ("2024-03-15") and anything too short to be an account or
+    card number. Comma-formatted money never reaches here, because the pattern
+    accepts only space and hyphen separators.
+    """
+    digits = re.sub(r"\D", "", candidate)
+    if len(digits) < _MIN_IDENTIFIER_DIGITS:
+        return False
+    return _DATE_LIKE.fullmatch(candidate) is None
 
 
 def _normalise_key(key: str) -> str:
@@ -95,11 +133,18 @@ class Masker:
 
     # -- value handling ----------------------------------------------------
     def mask_text(self, text: str) -> str:
-        """Redact PII patterns inside a string, leaving the rest intact."""
+        """Redact PII patterns inside a string, leaving the rest intact.
+
+        Deal-level figures — tranche balances, thresholds, coupons — survive by
+        design; see the note on ``_PATTERNS``.
+        """
         masked = text
         for _, pattern in _PATTERNS:
             masked = pattern.sub(self.redaction_token, masked)
-        return masked
+        return _GROUPED_DIGITS.sub(
+            lambda m: self.redaction_token if _is_identifier_like(m.group()) else m.group(),
+            masked,
+        )
 
     def mask(self, data: Any, *, _depth: int = 0) -> Any:
         """Recursively mask a payload.
@@ -123,7 +168,7 @@ class Masker:
                     out[key] = self.mask(value, _depth=_depth + 1)
             return out
 
-        # bytes/str are sequences too; handle them before the generic branch.
+        # bytes are sequences too; handle them before the generic branch.
         if isinstance(data, bytes | bytearray):
             return self.redaction_token
 
@@ -167,14 +212,13 @@ def mask(*, data: Any, **_kwargs: Any) -> Any:
 def contains_pii(value: Any) -> bool:
     """True if any configured pattern still matches. Used by tests and asserts."""
     if isinstance(value, str):
-        return any(pattern.search(value) for _, pattern in _PATTERNS)
+        if any(pattern.search(value) for _, pattern in _PATTERNS):
+            return True
+        return any(_is_identifier_like(m.group()) for m in _GROUPED_DIGITS.finditer(value))
     if isinstance(value, Mapping):
+        masker = get_masker()
         return any(
-            (
-                isinstance(k, str)
-                and get_masker().is_sensitive_key(k)
-                and v != get_masker().redaction_token
-            )
+            (isinstance(k, str) and masker.is_sensitive_key(k) and v != masker.redaction_token)
             or contains_pii(v)
             for k, v in value.items()
         )
