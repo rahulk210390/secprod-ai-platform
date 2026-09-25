@@ -101,6 +101,68 @@ ingestion can lag by up to 15 minutes on Langfuse v4.
 
 ---
 
+## Verifying the codebase
+
+Run this before starting any new job (CLAUDE.md §9). It is the same sequence CI
+runs, and everything must be green before new work begins.
+
+```bash
+# 0. dependencies match the lockfile
+uv sync --all-groups
+
+# 1. static checks — fast, no services needed
+make lint            # .\make.ps1 lint        ruff check + format --check
+make typecheck       # .\make.ps1 typecheck   mypy --strict on src/
+
+# 2. unit tests + coverage — no network, no Docker
+make test            # .\make.ps1 test
+
+# 3. bring the stack up and confirm every service is healthy
+make up-core         # .\make.ps1 up-core     (add vLLM with `make up`)
+make ps              # .\make.ps1 ps          all services should say (healthy)
+
+# 4. end-to-end telemetry check against live Langfuse
+uv run python scripts/telemetry_smoke.py
+#    --with-llm additionally makes a real vLLM call
+
+# 5. integration tests (needs the stack up)
+make test-integration
+```
+
+`make check` chains steps 1–2 in one go.
+
+### What "green" means
+
+| Step | Expected |
+|---|---|
+| `lint` | `All checks passed!` and `N files already formatted` |
+| `typecheck` | `Success: no issues found in N source files` |
+| `test` | all pass, **coverage ≥ 85% for every new module** (CLAUDE.md §2.2) |
+| `up-core` / `ps` | all 8 services `(healthy)` |
+| smoke script | prints a `trace_id`; the trace resolves in Langfuse |
+
+Never start a new job on a red tree — CLAUDE.md §9.2 says fix that first and
+nothing else. And never mark a job DONE with skipped or xfail tests unless the
+reason is written into `PROGRESS.md`.
+
+### Verifying a trace actually landed
+
+The smoke script printing a trace ID only means the span was *sent*. To confirm
+Langfuse stored it — and that masking held — query the API rather than trusting
+the script:
+
+```bash
+AUTH=$(grep '^LANGFUSE_AUTH=' .env | cut -d= -f2)
+curl -s -H "Authorization: Basic $AUTH"   "http://localhost:3000/api/public/traces/<trace_id>" | python -m json.tool
+```
+
+Check that borrower fields read `[REDACTED]` and that deal terms — tranche
+balances, thresholds, coupons — are still present and unaltered. A masker that
+eats tranche balances passes its own unit tests and silently destroys the data
+JOB-04 is graded on; that regression has happened once already.
+
+---
+
 ## Repository layout
 
 ```
