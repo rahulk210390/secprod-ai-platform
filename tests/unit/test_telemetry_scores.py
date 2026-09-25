@@ -7,7 +7,6 @@ a boolean, and the dashboards in §6.6 group on it.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -29,20 +28,6 @@ from secai.telemetry.attributes import (
     SCORE_TOUCHLESS,
     SCORE_VALIDATION_PASS,
 )
-
-
-@pytest.fixture(scope="session")
-def _pipeline() -> InMemorySpanExporter:
-    memory = InMemorySpanExporter()
-    init_telemetry(span_exporter=memory, force=True)
-    return memory
-
-
-@pytest.fixture
-def pipeline(_pipeline: InMemorySpanExporter) -> Iterator[InMemorySpanExporter]:
-    init_telemetry(span_exporter=_pipeline, force=True)
-    _pipeline.clear()
-    yield _pipeline
 
 
 class Recorder:
@@ -125,14 +110,14 @@ class TestScoreSpan:
 
 
 class TestIdentifiers:
-    def test_trace_id_is_available_inside_a_trace(self, pipeline: InMemorySpanExporter) -> None:
+    def test_trace_id_is_available_inside_a_trace(self, exporter: InMemorySpanExporter) -> None:
         with job_trace("term_extraction"):
             trace_id = current_trace_id()
         assert trace_id is not None
         assert len(trace_id) == 32
 
     def test_trace_url_returns_none_rather_than_raising_when_unreachable(
-        self, pipeline: InMemorySpanExporter
+        self, exporter: InMemorySpanExporter
     ) -> None:
         # Resolving the link calls the Langfuse API; offline it 401s. A cosmetic
         # link must never take a job run down with it.
@@ -140,7 +125,7 @@ class TestIdentifiers:
             assert trace_url() is None
 
     def test_trace_url_contains_the_trace_id_when_resolvable(
-        self, pipeline: InMemorySpanExporter, monkeypatch: pytest.MonkeyPatch
+        self, exporter: InMemorySpanExporter, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         class Stub:
             def get_trace_url(self) -> str:

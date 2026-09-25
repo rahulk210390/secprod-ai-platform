@@ -296,3 +296,54 @@ evaluation; it is verified by `make up` health checks plus `make lint typecheck 
 production target from the spec (`Qwen2.5-32B-Instruct-AWQ`) needs ≳24 GB of
 VRAM; on a small dev GPU set a smaller model (e.g. `Qwen/Qwen2.5-1.5B-Instruct`)
 and lower `VLLM_MAX_MODEL_LEN`. Nothing in the code assumes a particular model.
+
+### JOB-02 — LLM Client & Guided Decoding
+
+One entry point for every LLM call, so the guarantees hold everywhere rather
+than at each call site.
+
+```python
+from pydantic import BaseModel
+from secai.llm import LLMClient
+
+class Tranche(BaseModel):
+    original_balance: int
+    coupon_margin: float
+
+with LLMClient() as client:
+    tranche = client.generate_structured(
+        [{"role": "user", "content": prompt}], Tranche
+    )   # a validated Tranche, or an exception - never a string to parse
+```
+
+**What it guarantees**
+
+- **Schema-constrained output.** The Pydantic model becomes a `guided_json`
+  payload, so vLLM constrains the sampler itself; the result is then validated
+  again on the way back. Free-text parsing of model output is not allowed.
+- **Retries only where they help.** Connection faults, timeouts, 5xx and 429
+  retry with exponential backoff. A 4xx or a schema violation does not — the
+  same request produces the same failure, so retrying burns tokens for nothing.
+  The raw output is kept on the exception for triage.
+- **Every call is a Langfuse generation** with model, parameters, token usage
+  and latency — recorded even when validation fails, because a failed call
+  still cost tokens.
+- **Trace context propagates.** `traceparent` is injected per request so vLLM's
+  server spans nest under the application trace.
+
+**Prompts** resolve from Langfuse Prompt Management, falling back to
+`prompts/<name>.md` in the repo when Langfuse is unreachable — an outage must
+not take extraction down. Local versions are content-addressed
+(`local-<hash>`), so an edit is visible in the trace.
+
+**Configuration**: `VLLM_MODEL`, `VLLM_TIMEOUT_S`, `VLLM_MAX_RETRIES`,
+`VLLM_TEMPERATURE` (0.0 by default — extraction should be reproducible),
+`VLLM_MAX_TOKENS`.
+
+**Running the acceptance test**: `make test-integration` with the stack up. It
+makes 20 consecutive live calls and asserts every one returns a valid object.
+
+> **Note:** the OpenAI SDK is built on `httpx2` while this codebase uses
+> `httpx`, so trace context is injected via `extra_headers` rather than a custom
+> `http_client`, and unit tests mock at the OpenAI client seam rather than with
+> `respx`.

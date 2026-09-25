@@ -14,8 +14,10 @@ from pathlib import Path
 os.environ.setdefault("SECAI_ENV_FILE", str(Path(__file__).parent / "fixtures" / "absent.env"))
 
 import pytest
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from secai.config import Settings, get_settings, reload_settings
+from secai.telemetry import init_telemetry
 
 # Every env var the settings tree can read; cleared between tests.
 _MANAGED_PREFIXES = ("SECAI_", "LANGFUSE_", "OTEL_", "VLLM_")
@@ -40,3 +42,29 @@ def clean_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 def settings() -> Settings:
     """Freshly loaded settings for the current environment."""
     return reload_settings()
+
+
+@pytest.fixture(scope="session")
+def span_exporter() -> InMemorySpanExporter:
+    """The one in-memory exporter for the entire test session.
+
+    OpenTelemetry installs its global tracer provider once per process, so the
+    first Langfuse client to initialise wins and every later exporter is
+    silently ignored. Sharing a single exporter across all telemetry tests is
+    the only arrangement that actually works; per-file exporters appear to work
+    until a second file starts producing spans.
+    """
+    memory = InMemorySpanExporter()
+    init_telemetry(span_exporter=memory, force=True)
+    return memory
+
+
+@pytest.fixture
+def exporter(span_exporter: InMemorySpanExporter) -> Iterator[InMemorySpanExporter]:
+    """A clean, enabled telemetry pipeline writing into the session exporter."""
+    telemetry = init_telemetry(span_exporter=span_exporter, force=True)
+    # Langfuse batches spans: drain anything still in flight from the previous
+    # test before clearing, or it lands in this test's results.
+    telemetry.flush()
+    span_exporter.clear()
+    yield span_exporter

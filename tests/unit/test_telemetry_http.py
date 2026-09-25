@@ -6,32 +6,14 @@ trace context, so these assert on the headers a real httpx request sends.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-
 import httpx
-import pytest
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from secai.telemetry import (
-    init_telemetry,
     job_trace,
     traced_async_http_client,
     traced_http_client,
 )
-
-
-@pytest.fixture(scope="session")
-def _pipeline() -> InMemorySpanExporter:
-    memory = InMemorySpanExporter()
-    init_telemetry(span_exporter=memory, force=True)
-    return memory
-
-
-@pytest.fixture
-def pipeline(_pipeline: InMemorySpanExporter) -> Iterator[InMemorySpanExporter]:
-    init_telemetry(span_exporter=_pipeline, force=True)
-    _pipeline.clear()
-    yield _pipeline
 
 
 def _echo(request: httpx.Request) -> httpx.Response:
@@ -46,7 +28,7 @@ def _echo(request: httpx.Request) -> httpx.Response:
 
 
 class TestSyncClient:
-    def test_traceparent_is_sent_inside_a_span(self, pipeline: InMemorySpanExporter) -> None:
+    def test_traceparent_is_sent_inside_a_span(self, exporter: InMemorySpanExporter) -> None:
         transport = httpx.MockTransport(_echo)
         with (
             job_trace("term_extraction"),
@@ -60,7 +42,7 @@ class TestSyncClient:
         assert len(trace_id) == 32
         assert len(span_id) == 16
 
-    def test_trace_id_matches_the_active_trace(self, pipeline: InMemorySpanExporter) -> None:
+    def test_trace_id_matches_the_active_trace(self, exporter: InMemorySpanExporter) -> None:
         transport = httpx.MockTransport(_echo)
         with job_trace("term_extraction"):
             with traced_http_client(timeout=5.0, transport=transport) as client:
@@ -71,14 +53,14 @@ class TestSyncClient:
 
         assert body["traceparent"].split("-")[1] == active
 
-    def test_no_traceparent_outside_a_span(self, pipeline: InMemorySpanExporter) -> None:
+    def test_no_traceparent_outside_a_span(self, exporter: InMemorySpanExporter) -> None:
         transport = httpx.MockTransport(_echo)
         with traced_http_client(timeout=5.0, transport=transport) as client:
             body = client.get("http://vllm.test/v1/models").json()
         # Nothing to correlate to, so nothing is sent.
         assert body["traceparent"] is None
 
-    def test_other_headers_are_untouched(self, pipeline: InMemorySpanExporter) -> None:
+    def test_other_headers_are_untouched(self, exporter: InMemorySpanExporter) -> None:
         transport = httpx.MockTransport(_echo)
         with (
             job_trace("term_extraction"),
@@ -92,7 +74,7 @@ class TestSyncClient:
         assert body["authorization"] == "Bearer token"
         assert body["traceparent"] is not None
 
-    def test_base_url_is_applied(self, pipeline: InMemorySpanExporter) -> None:
+    def test_base_url_is_applied(self, exporter: InMemorySpanExporter) -> None:
         transport = httpx.MockTransport(_echo)
         client = traced_http_client(
             timeout=5.0, base_url="http://vllm.test/v1", transport=transport
@@ -101,14 +83,14 @@ class TestSyncClient:
         assert str(client.base_url) == "http://vllm.test/v1/"
         client.close()
 
-    def test_timeout_is_applied(self, pipeline: InMemorySpanExporter) -> None:
+    def test_timeout_is_applied(self, exporter: InMemorySpanExporter) -> None:
         client = traced_http_client(timeout=12.5)
         assert client.timeout.read == 12.5
         client.close()
 
 
 class TestAsyncClient:
-    async def test_traceparent_is_sent_inside_a_span(self, pipeline: InMemorySpanExporter) -> None:
+    async def test_traceparent_is_sent_inside_a_span(self, exporter: InMemorySpanExporter) -> None:
         transport = httpx.MockTransport(_echo)
         with job_trace("term_extraction"):
             async with traced_async_http_client(timeout=5.0, transport=transport) as client:
@@ -116,7 +98,7 @@ class TestAsyncClient:
 
         assert response.json()["traceparent"] is not None
 
-    async def test_no_traceparent_outside_a_span(self, pipeline: InMemorySpanExporter) -> None:
+    async def test_no_traceparent_outside_a_span(self, exporter: InMemorySpanExporter) -> None:
         transport = httpx.MockTransport(_echo)
         async with traced_async_http_client(timeout=5.0, transport=transport) as client:
             response = await client.get("http://vllm.test/v1/models")

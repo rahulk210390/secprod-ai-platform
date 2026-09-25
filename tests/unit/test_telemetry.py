@@ -7,7 +7,6 @@ so these cover the real export pipeline (including masking) without a network.
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator
 
 import pytest
 from opentelemetry.sdk.trace import ReadableSpan
@@ -31,30 +30,7 @@ from secai.telemetry import (
     job_trace,
     llm_generation,
 )
-from secai.telemetry.pii import contains_pii, reset_masker
-
-
-# OpenTelemetry's global tracer provider can only be installed once per
-# process, so every test shares a single exporter instance and clears it
-# between cases rather than building a new pipeline each time.
-@pytest.fixture(scope="session")
-def shared_exporter() -> InMemorySpanExporter:
-    memory = InMemorySpanExporter()
-    init_telemetry(span_exporter=memory, force=True)
-    return memory
-
-
-@pytest.fixture
-def exporter(shared_exporter: InMemorySpanExporter) -> Iterator[InMemorySpanExporter]:
-    """A clean, enabled telemetry pipeline writing into the shared exporter."""
-    reset_masker()
-    telemetry = init_telemetry(span_exporter=shared_exporter, force=True)
-    # Langfuse batches spans, so drain anything still in flight from the
-    # previous test *before* clearing, or it lands in this test's results.
-    telemetry.flush()
-    shared_exporter.clear()
-    yield shared_exporter
-    reset_masker()
+from secai.telemetry.pii import contains_pii
 
 
 def finished(exporter: InMemorySpanExporter) -> list[ReadableSpan]:
@@ -86,13 +62,13 @@ class TestSetup:
         first = get_telemetry()
         assert init() is first
 
-    def test_disabled_without_credentials(self, shared_exporter: InMemorySpanExporter) -> None:
+    def test_disabled_without_credentials(self, exporter: InMemorySpanExporter) -> None:
         # No credentials and no exporter: tracing must switch itself off rather
         # than silently buffering spans that can never be delivered.
         telemetry = init_telemetry(force=True)
         assert telemetry.enabled is False
         # Restore the shared pipeline for subsequent tests.
-        init_telemetry(span_exporter=shared_exporter, force=True)
+        init_telemetry(span_exporter=exporter, force=True)
 
 
 class TestRootTrace:
