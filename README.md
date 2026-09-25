@@ -13,8 +13,10 @@ Two rules shape the whole design:
 - **Every LLM extraction is schema-constrained** (Pydantic + vLLM guided
   decoding). Free-text parsing of model output is not allowed.
 
-Work is tracked job by job in [`PROGRESS.md`](PROGRESS.md); the working rules
-live in [`CLAUDE.md`](CLAUDE.md).
+Work proceeds one job at a time against an internal specification and work log,
+which are kept outside this repository. Each job ships code, tests, an
+evaluation against a gold set where one is defined, and traces verified in
+Langfuse before it is considered done.
 
 ---
 
@@ -103,8 +105,8 @@ ingestion can lag by up to 15 minutes on Langfuse v4.
 
 ## Verifying the codebase
 
-Run this before starting any new job (CLAUDE.md §9). It is the same sequence CI
-runs, and everything must be green before new work begins.
+Run this before starting any new job. It is the same sequence CI runs, and
+everything must be green before new work begins.
 
 ```bash
 # 0. dependencies match the lockfile
@@ -137,13 +139,13 @@ make test-integration
 |---|---|
 | `lint` | `All checks passed!` and `N files already formatted` |
 | `typecheck` | `Success: no issues found in N source files` |
-| `test` | all pass, **coverage ≥ 85% for every new module** (CLAUDE.md §2.2) |
+| `test` | all pass, **coverage ≥ 85% for every new module** |
 | `up-core` / `ps` | all 8 services `(healthy)` |
 | smoke script | prints a `trace_id`; the trace resolves in Langfuse |
 
-Never start a new job on a red tree — CLAUDE.md §9.2 says fix that first and
-nothing else. And never mark a job DONE with skipped or xfail tests unless the
-reason is written into `PROGRESS.md`.
+Never start a new job on a red tree: fix that first and nothing else. And never
+mark a job done with skipped or xfail tests unless the reason is recorded in the
+work log.
 
 ### Verifying a trace actually landed
 

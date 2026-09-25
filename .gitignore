@@ -13,6 +13,16 @@ service-account*.json
 .secrets/
 
 # ---------------------------------------------------------------------------
+# Client specification & internal work log — not ours to publish
+#
+# CLAUDE.md is the client's business specification (job backlog, KPI
+# thresholds, commercial workflow) and PROGRESS.md is the internal work log.
+# Both stay local. Keep working from them; they are simply never committed.
+# ---------------------------------------------------------------------------
+CLAUDE.md
+PROGRESS.md
+
+# ---------------------------------------------------------------------------
 # Real data guardrail (CLAUDE.md 2.4)
 #
 # No real deal or borrower data may enter the repo. Raw source documents land
