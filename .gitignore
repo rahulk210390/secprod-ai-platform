@@ -1,34 +1,90 @@
-# secrets & local env
+# ---------------------------------------------------------------------------
+# Secrets & local env
+# ---------------------------------------------------------------------------
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+.secrets/
 
-# python
+# ---------------------------------------------------------------------------
+# Real data guardrail (CLAUDE.md 2.4)
+#
+# No real deal or borrower data may enter the repo. Raw source documents land
+# in data/samples/ and are never committed; only synthetic or public,
+# anonymised material belongs in data/gold/ and tests/fixtures/, which ARE
+# tracked deliberately.
+# ---------------------------------------------------------------------------
+data/samples/*
+!data/samples/.gitkeep
+# Loan tapes and servicer reports, wherever they are dropped.
+*.xlsx
+*.xls
+*.xlsm
+!tests/fixtures/**/*.xlsx
+!data/gold/**/*.xlsx
+
+# ---------------------------------------------------------------------------
+# Model weights & caches — never in git; vLLM pulls these itself
+# ---------------------------------------------------------------------------
+*.safetensors
+*.gguf
+*.ckpt
+*.pt
+*.pth
+models/
+.cache/
+huggingface/
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
+*$py.class
 .venv/
+venv/
 *.egg-info/
 build/
 dist/
+.ipynb_checkpoints/
 
-# tooling caches
+# ---------------------------------------------------------------------------
+# Tooling caches & test output
+# ---------------------------------------------------------------------------
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.tox/
+.nox/
 .coverage
+.coverage.*
 coverage.xml
 htmlcov/
+junit*.xml
 
-# runtime artefacts
+# ---------------------------------------------------------------------------
+# Runtime artefacts
+# ---------------------------------------------------------------------------
 eval/reports/*
 !eval/reports/.gitkeep
-data/samples/*
-!data/samples/.gitkeep
 .docker-volumes/
+*.vhdx
 *.log
 
-# editors / os
+# ---------------------------------------------------------------------------
+# Editors / OS / agent-local settings
+# ---------------------------------------------------------------------------
 .idea/
 .vscode/
+*.swp
+*~
 .DS_Store
 Thumbs.db
+desktop.ini
+.claude/settings.local.json
