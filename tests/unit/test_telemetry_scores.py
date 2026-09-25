@@ -157,3 +157,31 @@ class TestRecordException:
             pass
 
         record_exception(Bare(), ValueError("boom"))  # must not raise
+
+
+class TestOfflineSemantics:
+    """A tracer_provider alone must not be mistaken for "offline".
+
+    Langfuse attaches its own network exporter to whatever provider it is
+    given, so treating a supplied provider as offline once shipped debug spans
+    to the real server.
+    """
+
+    def test_span_exporter_enables_tracing_without_credentials(self) -> None:
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+            InMemorySpanExporter,
+        )
+
+        telemetry = init_telemetry(span_exporter=InMemorySpanExporter(), force=True)
+        assert telemetry.enabled is True
+
+    def test_tracer_provider_alone_does_not_enable_tracing(self) -> None:
+        from opentelemetry.sdk.trace import TracerProvider
+
+        # No credentials and no exporter: nothing should be emitted anywhere,
+        # rather than being sent to LANGFUSE_HOST with placeholder keys.
+        telemetry = init_telemetry(tracer_provider=TracerProvider(), force=True)
+        assert telemetry.enabled is False
+
+    def test_nothing_supplied_does_not_enable_tracing(self) -> None:
+        assert init_telemetry(force=True).enabled is False

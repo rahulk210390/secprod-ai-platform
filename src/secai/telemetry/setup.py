@@ -99,19 +99,19 @@ def init_telemetry(
 
     Args:
         settings: override the process settings (tests).
-        span_exporter: send spans somewhere other than Langfuse.
+        span_exporter: send spans here **instead of** Langfuse. This is the
+            offline switch: supplying it keeps the span pipeline alive without
+            credentials, which is how the tests exercise masking and span
+            structure with no network.
         tracer_provider: supply an existing provider instead of letting the SDK
-            build one. Tests pass a provider carrying an
-            ``InMemorySpanExporter``; note that supplying *both* a provider and
-            an exporter double-exports, since Langfuse adds its own processor to
-            the provider it is given.
+            build one. This does **not** imply offline — Langfuse attaches its
+            own network exporter to whatever provider it is given, so spans
+            still go to ``LANGFUSE_HOST`` unless ``span_exporter`` is also set.
+            Passing both double-exports, since each processor fires once.
         force: re-initialise even if already set up.
 
-    Tracing is enabled only when Langfuse credentials are present and
-    ``LANGFUSE_ENABLED`` is true, *or* when an explicit exporter or tracer
-    provider is supplied.
-    That keeps unit tests and offline runs from trying to reach a server, while
-    still exercising the full span pipeline.
+    Tracing is enabled when Langfuse credentials are present and
+    ``LANGFUSE_ENABLED`` is true, or when ``span_exporter`` is supplied.
     """
     global _telemetry
 
@@ -121,8 +121,20 @@ def init_telemetry(
     resolved = settings if settings is not None else get_settings()
     langfuse_settings = resolved.langfuse
 
-    offline = span_exporter is not None or tracer_provider is not None
+    # Only an explicit exporter means "do not talk to Langfuse". A tracer
+    # provider on its own does not: the SDK still attaches its network exporter
+    # to it, so treating that as offline silently shipped spans to the real
+    # server during development.
+    offline = span_exporter is not None
     enabled = offline or (langfuse_settings.enabled and langfuse_settings.is_configured)
+
+    if tracer_provider is not None and span_exporter is None and enabled:
+        logger.warning(
+            "A tracer_provider was supplied without a span_exporter: Langfuse "
+            "will attach its own exporter and spans will be sent to %s. Pass "
+            "span_exporter to keep them local.",
+            langfuse_settings.host,
+        )
 
     if not enabled:
         logger.warning(
