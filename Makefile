@@ -11,7 +11,7 @@ PY      ?= $(UV) run
 JOB     ?=
 
 .PHONY: help setup up up-core down restart ps logs test test-unit test-integration \
-        lint fmt typecheck check eval langfuse-auth secrets clean
+        lint fmt typecheck check eval langfuse-auth secrets env-check env-restore clean
 
 help: ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -25,6 +25,12 @@ setup: ## Create the venv, install deps and dev tools, install pre-commit hooks
 
 secrets: ## Print freshly generated values for the Langfuse server secrets
 	@$(PY) python scripts/gen_secrets.py
+
+env-check: ## Check .env still matches the running stack
+	$(PY) python scripts/restore_env.py --check
+
+env-restore: ## Rebuild .env from the running containers (secrets live only there)
+	$(PY) python scripts/restore_env.py
 
 langfuse-auth: ## Print LANGFUSE_AUTH (base64 of the key pair) from .env
 	@$(PY) python scripts/langfuse_auth.py

@@ -60,6 +60,7 @@ target one-for-one:
 | `setup` | Create the venv, install deps and dev tools, install pre-commit hooks |
 | `secrets` | Print freshly generated Langfuse server secrets for `.env` |
 | `langfuse-auth` | Print `LANGFUSE_AUTH` (base64 of the key pair) from `.env` |
+| `env-check` / `env-restore` | Check `.env` against the running stack, or rebuild it from the containers |
 | `up` / `up-core` | Start the stack, with / without vLLM |
 | `down` / `restart` / `ps` / `logs` | Lifecycle and inspection |
 | `test` | Unit suite with coverage (no network) |
@@ -163,6 +164,52 @@ Check that borrower fields read `[REDACTED]` and that deal terms — tranche
 balances, thresholds, coupons — are still present and unaltered. A masker that
 eats tranche balances passes its own unit tests and silently destroys the data
 JOB-04 is graded on; that regression has happened once already.
+
+---
+
+## Langfuse credentials
+
+The key pair is **not fetched from Langfuse — you declare it and Langfuse
+creates it.** `docker-compose.yml` passes `LANGFUSE_PUBLIC_KEY` and
+`LANGFUSE_SECRET_KEY` to `langfuse-web` as `LANGFUSE_INIT_PROJECT_*`, and on
+first boot Langfuse provisions the org, project, UI user and that exact pair.
+So the keys in `.env` work the moment the stack starts.
+
+`LANGFUSE_AUTH` is just `base64("public:secret")`, used by the OTel Collector's
+`Authorization: Basic` header. `make langfuse-auth` derives it.
+
+```bash
+cp .env.example .env
+make secrets          # generates SALT, ENCRYPTION_KEY, NEXTAUTH_SECRET, passwords
+                      #   paste the output into .env
+#   then pick any key pair, e.g.:
+#     LANGFUSE_PUBLIC_KEY=pk-lf-secai-dev
+#     LANGFUSE_SECRET_KEY=sk-lf-<random hex>
+make langfuse-auth    # prints LANGFUSE_AUTH; paste into .env
+make up-core
+```
+
+Two things to know:
+
+- **`LANGFUSE_INIT_*` only applies to an empty database.** Change the key pair
+  later and Langfuse ignores it; rotate keys in the UI or wipe the volume.
+- **`ENCRYPTION_KEY` is load-bearing.** Change it and Langfuse can no longer
+  decrypt what is already in its database.
+
+### If `.env` is lost or reset
+
+`.env` is git-ignored and holds secrets that exist nowhere else. While the
+containers are still running, every value can be recovered from them:
+
+```bash
+make env-check      # does .env still match the running stack?
+make env-restore    # rebuild .env from the containers
+```
+
+A stale `.env` fails loudly — `docker compose config` reports
+`required variable LANGFUSE_AUTH is missing a value` and `make up` refuses to
+start. Once the containers are removed the secrets are gone for good, so keep a
+copy of `.env` somewhere safe.
 
 ---
 

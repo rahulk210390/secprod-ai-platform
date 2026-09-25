@@ -38,6 +38,8 @@ secai targets (Windows shim for the Makefile)
   setup              create the venv, install deps, install pre-commit hooks
   secrets            print freshly generated Langfuse server secrets
   langfuse-auth      print LANGFUSE_AUTH (base64 of the key pair) from .env
+  env-check          check .env still matches the running stack
+  env-restore        rebuild .env from the running containers
 
   up                 start the full stack (includes vLLM; needs an NVIDIA GPU)
   up-core            start everything except vLLM (no GPU required)
@@ -71,6 +73,8 @@ secai targets (Windows shim for the Makefile)
 
     'secrets'       { Uvr @('python', 'scripts/gen_secrets.py') }
     'langfuse-auth' { Uvr @('python', 'scripts/langfuse_auth.py') }
+    'env-check'     { Uvr @('python', 'scripts/restore_env.py', '--check') }
+    'env-restore'   { Uvr @('python', 'scripts/restore_env.py') }
 
     'up'      { Compose @('up', '-d', '--wait') }
     'up-core' { Compose @('up', '-d', '--wait', 'postgres', 'langfuse-web', 'langfuse-worker', 'otel-collector') }
