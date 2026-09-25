@@ -12,6 +12,7 @@ than being restated at each call site:
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from typing import Any, Literal
@@ -30,6 +31,8 @@ from secai.telemetry.attributes import (
     job_span_name,
 )
 from secai.telemetry.setup import get_client
+
+logger = logging.getLogger(__name__)
 
 
 def _job_attributes(
@@ -234,5 +237,15 @@ def current_trace_id() -> str | None:
 
 
 def trace_url() -> str | None:
-    """A deep link to the current trace in the Langfuse UI."""
-    return get_client().get_trace_url()
+    """A deep link to the current trace in the Langfuse UI, or None.
+
+    Resolving the link calls the Langfuse API, which can fail (bad credentials,
+    server down). This is a convenience for logs and reports, never job logic,
+    so a failure returns None rather than taking the run down with it. Span
+    errors are still recorded and re-raised — see :func:`record_exception`.
+    """
+    try:
+        return get_client().get_trace_url()
+    except Exception:
+        logger.debug("could not resolve the Langfuse trace URL", exc_info=True)
+        return None
