@@ -153,7 +153,8 @@ the script:
 
 ```bash
 AUTH=$(grep '^LANGFUSE_AUTH=' .env | cut -d= -f2)
-curl -s -H "Authorization: Basic $AUTH"   "http://localhost:3000/api/public/traces/<trace_id>" | python -m json.tool
+curl -s -H "Authorization: Basic $AUTH" \
+  "http://localhost:3000/api/public/traces/<trace_id>" | python -m json.tool
 ```
 
 Check that borrower fields read `[REDACTED]` and that deal terms — tranche
