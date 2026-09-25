@@ -185,16 +185,26 @@ make secrets          # generates SALT, ENCRYPTION_KEY, NEXTAUTH_SECRET, passwor
 #   then pick any key pair, e.g.:
 #     LANGFUSE_PUBLIC_KEY=pk-lf-secai-dev
 #     LANGFUSE_SECRET_KEY=sk-lf-<random hex>
+#   and set the UI login:
+#     LANGFUSE_INIT_USER_EMAIL=you@example.com
+#     LANGFUSE_INIT_USER_PASSWORD=<something real>
 make langfuse-auth    # prints LANGFUSE_AUTH; paste into .env
 make up-core
 ```
 
-Two things to know:
+The **UI login** at http://localhost:3000 is whatever you set in
+`LANGFUSE_INIT_USER_EMAIL` / `LANGFUSE_INIT_USER_PASSWORD`. Both are required —
+there is deliberately no default, so a weak password never ships in the repo.
+
+Three things to know:
 
 - **`LANGFUSE_INIT_*` only applies to an empty database.** Change the key pair
   later and Langfuse ignores it; rotate keys in the UI or wipe the volume.
 - **`ENCRYPTION_KEY` is load-bearing.** Change it and Langfuse can no longer
   decrypt what is already in its database.
+- **The UI password cannot be changed via `.env` after first boot.** Editing
+  `LANGFUSE_INIT_USER_PASSWORD` on an existing database does nothing; change it
+  in the UI.
 
 ### If `.env` is lost or reset
 

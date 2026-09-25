@@ -60,6 +60,10 @@ def recover() -> dict[str, str]:
         "MINIO_ROOT_PASSWORD": web["LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY"],
         "REDIS_PASSWORD": web["REDIS_AUTH"],
         "SECAI_DB_PASSWORD": app_db["POSTGRES_PASSWORD"],
+        # Only meaningful on a fresh database, but recovering them keeps .env
+        # honest about which account actually exists.
+        "LANGFUSE_INIT_USER_EMAIL": web["LANGFUSE_INIT_USER_EMAIL"],
+        "LANGFUSE_INIT_USER_PASSWORD": web["LANGFUSE_INIT_USER_PASSWORD"],
     }
 
 
