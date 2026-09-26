@@ -42,6 +42,9 @@ secai targets (Windows shim for the Makefile)
   env-restore        rebuild .env from the running containers
 
   up                 start the full stack (includes vLLM; needs an NVIDIA GPU)
+  pull-llm           pull the pinned vLLM image (large; foreground)
+  up-llm             start vLLM on its own, on top of a running core stack
+  down-llm           stop vLLM, releasing the GPU and its RAM
   up-core            start everything except vLLM (no GPU required)
   down               stop the stack (volumes preserved)
   restart            down + up
@@ -76,10 +79,13 @@ secai targets (Windows shim for the Makefile)
     'env-check'     { Uvr @('python', 'scripts/restore_env.py', '--check') }
     'env-restore'   { Uvr @('python', 'scripts/restore_env.py') }
 
-    'up'      { Compose @('up', '-d', '--wait') }
+    'up'      { Compose @('--profile', 'llm', 'up', '-d', '--wait') }
     'up-core' { Compose @('up', '-d', '--wait', 'postgres', 'langfuse-web', 'langfuse-worker', 'otel-collector') }
+    'pull-llm' { Compose @('--profile', 'llm', 'pull', 'vllm') }
+    'up-llm'   { Compose @('--profile', 'llm', 'up', '-d', '--wait', 'vllm') }
+    'down-llm' { Compose @('--profile', 'llm', 'rm', '-sf', 'vllm') }
     'down'    { Compose @('down') }
-    'restart' { Compose @('down'); Compose @('up', '-d', '--wait') }
+    'restart' { Compose @('down'); Compose @('--profile', 'llm', 'up', '-d', '--wait') }
     'ps'      { Compose @('ps') }
     'logs'    {
         $a = @('logs', '-f', '--tail=100')

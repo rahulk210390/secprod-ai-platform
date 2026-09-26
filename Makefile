@@ -11,7 +11,8 @@ PY      ?= $(UV) run
 JOB     ?=
 
 .PHONY: help setup up up-core down restart ps logs test test-unit test-integration \
-        lint fmt typecheck check eval langfuse-auth secrets env-check env-restore clean
+        pull-llm up-llm down-llm lint fmt typecheck check eval langfuse-auth \
+        secrets env-check env-restore clean
 
 help: ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -37,10 +38,19 @@ langfuse-auth: ## Print LANGFUSE_AUTH (base64 of the key pair) from .env
 
 # -------------------------------------------------------------------- docker
 up: ## Start the full stack (includes vLLM; needs an NVIDIA GPU)
-	$(COMPOSE) up -d --wait
+	$(COMPOSE) --profile llm up -d --wait
 
 up-core: ## Start everything except vLLM (no GPU required)
 	$(COMPOSE) up -d --wait postgres langfuse-web langfuse-worker otel-collector
+
+pull-llm: ## Pull the pinned vLLM image (large; run in the foreground)
+	$(COMPOSE) --profile llm pull vllm
+
+up-llm: ## Start vLLM on its own, on top of a running core stack
+	$(COMPOSE) --profile llm up -d --wait vllm
+
+down-llm: ## Stop vLLM, releasing the GPU and its RAM
+	$(COMPOSE) --profile llm rm -sf vllm
 
 down: ## Stop the stack (volumes are preserved)
 	$(COMPOSE) down

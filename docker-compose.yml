@@ -204,10 +204,17 @@ services:
       retries: 10
 
   # -------------------------------------------------------------------- vLLM
-  # Requires an NVIDIA GPU with enough VRAM for VLLM_MODEL. Use `make up-core`
-  # to bring up everything else without it.
+  # Behind the `llm` profile, so it is opt-in: `make up-core` brings up the
+  # eight-container stack without it, `make up-llm` adds it, and `make up`
+  # starts everything. On a small GPU it is worth stopping vLLM between runs —
+  # it holds the whole model resident.
+  #
+  # The image tag is pinned rather than `latest`: the launch flags below have
+  # to be validated against a known version (CLAUDE.md §6.3), and `latest`
+  # silently moving breaks that guarantee.
   vllm:
-    image: vllm/vllm-openai:latest
+    profiles: ["llm"]
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.30.0}
     container_name: secai-vllm
     restart: unless-stopped
     depends_on:
@@ -220,9 +227,19 @@ services:
       - --model=${VLLM_MODEL:-Qwen/Qwen2.5-7B-Instruct-AWQ}
       - --host=0.0.0.0
       - --port=8000
-      - --max-model-len=${VLLM_MAX_MODEL_LEN:-8192}
-      - --gpu-memory-utilization=${VLLM_GPU_MEMORY_UTILIZATION:-0.90}
+      # KV cache scales with context length: the biggest single memory lever.
+      - --max-model-len=${VLLM_MAX_MODEL_LEN:-4096}
+      - --gpu-memory-utilization=${VLLM_GPU_MEMORY_UTILIZATION:-0.80}
       - --tensor-parallel-size=${VLLM_TENSOR_PARALLEL_SIZE:-1}
+      # We process documents one at a time; the default of 256 reserves
+      # activation memory for concurrency we never use.
+      - --max-num-seqs=${VLLM_MAX_NUM_SEQS:-4}
+      # Default is 4 GiB of *host* RAM for KV spill. On a 16 GB laptop that is
+      # unaffordable, and spilling would be slower than simply queueing.
+      - --swap-space=${VLLM_SWAP_SPACE:-0}
+      # Skips CUDA graph capture: about 1 GiB of VRAM back, at a throughput
+      # cost that does not matter for ten documents.
+      - --enforce-eager
       - --enable-prefix-caching
       - --otlp-traces-endpoint=http://otel-collector:4317
       - --collect-detailed-traces=all

@@ -223,6 +223,78 @@ copy of `.env` somewhere safe.
 
 ---
 
+## Running vLLM locally
+
+vLLM sits behind the `llm` compose profile, so it never starts by accident. It
+holds the whole model resident on the GPU, which matters on a laptop.
+
+```bash
+make pull-llm     # pull the pinned image (~10 GB compressed). Run it in the
+                  # foreground - a background shell can be killed under memory
+                  # pressure, which is how two earlier attempts died.
+make up-core      # the eight-container stack
+make up-llm       # add vLLM; first start also downloads the weights
+make down-llm     # stop vLLM, releasing the GPU and its RAM
+make up           # everything at once, vLLM included
+```
+
+### Sizing
+
+Weights **plus KV cache** must fit in VRAM, so a 4-bit model often beats a
+smaller unquantised one on both quality and footprint.
+
+| Target | Model | Weights | Needs |
+|---|---|---|---|
+| Production | `Qwen/Qwen2.5-32B-Instruct-AWQ` | ~18 GB | ≳24 GB VRAM |
+| 6 GB laptop | `Qwen/Qwen2.5-3B-Instruct-AWQ` | ~2.2 GB | fits with room for KV cache |
+| Fallback | `Qwen/Qwen2.5-1.5B-Instruct` | ~3.1 GB | FP16, if AWQ kernels misbehave |
+
+Only `VLLM_MODEL` changes. No application code depends on the model or its
+quantisation.
+
+### Memory-conserving defaults
+
+`.env.example` ships values tuned for a small GPU. Raise them on a server.
+
+| Setting | Local | Why |
+|---|---|---|
+| `VLLM_MAX_MODEL_LEN` | 4096 | KV cache scales with context — the biggest lever |
+| `VLLM_GPU_MEMORY_UTILIZATION` | 0.80 | Headroom for the CUDA context |
+| `VLLM_MAX_NUM_SEQS` | 4 | Documents are processed one at a time |
+| `VLLM_SWAP_SPACE` | 0 | vLLM otherwise reserves 4 GiB of **host** RAM for KV spill |
+| `--enforce-eager` | always | Skips CUDA graph capture, ~1 GiB of VRAM back |
+
+If vLLM still runs out of memory at startup, turn the levers in this order:
+`VLLM_MAX_MODEL_LEN` to 2048, then `VLLM_GPU_MEMORY_UTILIZATION` to 0.75, then
+drop to the 1.5B model.
+
+### Host memory
+
+vLLM is memory-hungry while loading — it reads the weights into RAM before
+moving them to the GPU. On a 16 GB machine, cap Docker's VM so it cannot
+balloon, in `%USERPROFILE%\.wslconfig`:
+
+```ini
+[wsl2]
+memory=8GB
+```
+
+Then `wsl --shutdown` and restart Docker Desktop. Aim for 3-4 GB of free RAM
+before starting vLLM.
+
+### Pinned version
+
+`VLLM_IMAGE` pins the image rather than tracking `latest`. The launch flags
+have to be validated against a known version (CLAUDE.md §6.3) — in particular
+`--collect-detailed-traces`, whose accepted values have changed between
+releases. After bumping the pin, re-check:
+
+```bash
+docker run --rm --entrypoint vllm $VLLM_IMAGE serve --help
+```
+
+---
+
 ## Repository layout
 
 ```
