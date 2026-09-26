@@ -6,7 +6,7 @@ import pytest
 from pydantic import BaseModel, Field
 
 from secai.llm.errors import LLMEmptyResponseError, LLMSchemaError
-from secai.llm.guided import guided_decoding_kwargs, json_schema_for, parse_structured
+from secai.llm.guided import json_schema_for, parse_structured, response_format_for
 from secai.llm.prompts import Prompt, get_prompt, load_local, local_prompt_path
 
 
@@ -33,11 +33,12 @@ class TestSchemaGeneration:
         schema = json_schema_for(DealTerms)
         assert set(schema["required"]) == {"deal_name", "closing_date"}
 
-    def test_guided_kwargs_carry_the_schema(self) -> None:
-        kwargs = guided_decoding_kwargs(DealTerms)
-        assert kwargs["guided_json"] == json_schema_for(DealTerms)
-        # Pinning a backend breaks across vLLM versions.
-        assert kwargs["guided_decoding_backend"] == "auto"
+    def test_response_format_carries_the_schema(self) -> None:
+        fmt = response_format_for(DealTerms)
+        assert fmt["type"] == "json_schema"
+        assert fmt["json_schema"]["name"] == "DealTerms"
+        assert fmt["json_schema"]["schema"] == json_schema_for(DealTerms)
+        assert fmt["json_schema"]["strict"] is True
 
 
 class TestParsing:

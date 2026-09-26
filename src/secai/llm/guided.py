@@ -8,6 +8,13 @@ vLLM enforces the schema during sampling, so the token stream *cannot* leave
 the grammar. That makes the model's output structurally correct by
 construction; validation here is the second line of defence, catching a server
 that ignored the constraint or a schema the model satisfied vacuously.
+
+The constraint is expressed with OpenAI's standard ``response_format``
+``json_schema``, not vLLM's older ``guided_json`` extra-body parameter. vLLM
+0.30 renamed guided decoding to structured outputs and now **silently ignores**
+``guided_json`` — the request succeeds and the model returns free prose, which
+is the worst possible failure mode for a guardrail. ``response_format`` is also
+what every other OpenAI-compatible server speaks.
 """
 
 from __future__ import annotations
@@ -27,19 +34,19 @@ def json_schema_for(schema: type[BaseModel]) -> dict[str, Any]:
     return schema.model_json_schema()
 
 
-def guided_decoding_kwargs(schema: type[BaseModel]) -> dict[str, Any]:
-    """Extra body parameters that switch vLLM into guided JSON mode.
+def response_format_for(schema: type[BaseModel]) -> dict[str, Any]:
+    """The ``response_format`` that constrains sampling to ``schema``.
 
-    vLLM exposes this through the OpenAI-compatible endpoint as an
-    ``extra_body`` payload; the OpenAI SDK passes unknown keys straight
-    through. ``response_format`` alone is *not* enough — it asks for JSON but
-    does not pin the shape.
+    Verified against vLLM 0.30.0: this shape constrains the sampler, while the
+    older ``guided_json`` extra-body parameter is accepted and ignored.
     """
     return {
-        "guided_json": json_schema_for(schema),
-        # Let the server choose its backend (outlines, xgrammar, …); pinning a
-        # backend breaks across vLLM versions.
-        "guided_decoding_backend": "auto",
+        "type": "json_schema",
+        "json_schema": {
+            "name": schema.__name__,
+            "schema": json_schema_for(schema),
+            "strict": True,
+        },
     }
 
 

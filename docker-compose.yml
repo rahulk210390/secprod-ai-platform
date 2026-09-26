@@ -234,9 +234,6 @@ services:
       # We process documents one at a time; the default of 256 reserves
       # activation memory for concurrency we never use.
       - --max-num-seqs=${VLLM_MAX_NUM_SEQS:-4}
-      # Default is 4 GiB of *host* RAM for KV spill. On a 16 GB laptop that is
-      # unaffordable, and spilling would be slower than simply queueing.
-      - --swap-space=${VLLM_SWAP_SPACE:-0}
       # Skips CUDA graph capture: about 1 GiB of VRAM back, at a throughput
       # cost that does not matter for ten documents.
       - --enforce-eager

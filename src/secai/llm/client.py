@@ -30,7 +30,7 @@ from tenacity import (
 
 from secai.config import Settings, get_settings
 from secai.llm.errors import LLMTransportError
-from secai.llm.guided import guided_decoding_kwargs, parse_structured
+from secai.llm.guided import parse_structured, response_format_for
 from secai.telemetry.attributes import SPAN_LLM_EXTRACT
 from secai.telemetry.http import inject_trace_context
 from secai.telemetry.tracing import llm_generation
@@ -111,9 +111,10 @@ class LLMClient:
         """
         # Only a test may switch this off; production extraction is always
         # schema-constrained (CLAUDE.md 2.4).
-        body = guided_decoding_kwargs(schema) if self._settings.guided_decoding_required else {}
-        if extra_body:
-            body.update(extra_body)
+        response_format = (
+            response_format_for(schema) if self._settings.guided_decoding_required else None
+        )
+        body = dict(extra_body) if extra_body else {}
 
         resolved_model = model or self._vllm.model
         resolved_temperature = temperature if temperature is not None else self._vllm.temperature
@@ -122,7 +123,7 @@ class LLMClient:
         parameters = {
             "temperature": resolved_temperature,
             "max_tokens": resolved_max_tokens,
-            "guided_json": True,
+            "structured_output": response_format is not None,
         }
 
         with llm_generation(
@@ -139,6 +140,7 @@ class LLMClient:
                 temperature=resolved_temperature,
                 max_tokens=resolved_max_tokens,
                 extra_body=body,
+                response_format=response_format,
             )
             latency_s = time.perf_counter() - started
 
@@ -159,6 +161,7 @@ class LLMClient:
         temperature: float,
         max_tokens: int,
         extra_body: dict[str, Any],
+        response_format: dict[str, Any] | None,
     ) -> ChatCompletion:
         @retry(
             retry=(retry_if_exception_type(_RETRYABLE) | retry_if_exception_type(APIStatusError)),
@@ -168,16 +171,24 @@ class LLMClient:
             reraise=True,
         )
         def _call() -> ChatCompletion:
+            create_kwargs: dict[str, Any] = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "extra_body": extra_body,
+                # W3C traceparent, so vLLM's server spans nest under ours.
+                "extra_headers": inject_trace_context(),
+            }
+            # Omitted entirely rather than passed as None: the SDK treats an
+            # explicit None as a value and rejects it.
+            if response_format is not None:
+                create_kwargs["response_format"] = response_format
+
             try:
-                return self._client.chat.completions.create(
-                    model=model,
-                    messages=messages,  # type: ignore[arg-type]
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    extra_body=extra_body,
-                    # W3C traceparent, so vLLM's server spans nest under ours.
-                    extra_headers=inject_trace_context(),
-                )
+                # **kwargs defeats the SDK's overloads, so the result is Any.
+                completion: ChatCompletion = self._client.chat.completions.create(**create_kwargs)
+                return completion
             except APIStatusError as exc:
                 if not _is_retryable_status(exc):
                     # A 4xx is our fault; retrying cannot fix it.

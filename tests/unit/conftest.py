@@ -1,8 +1,19 @@
-"""Global test fixtures.
+"""Unit-test fixtures and environment isolation.
 
-Point the settings loader at a non-existent .env *before* secai.config is
-imported, so unit tests see a clean environment rather than the developer's
-local secrets.
+Unit tests must be hermetic: no network, no Docker, and no dependence on
+whatever a developer happens to have in their local ``.env``. So the settings
+loader is pointed at a non-existent env file *before* ``secai.config`` is
+imported, and the secai-related environment variables are cleared per test.
+
+This deliberately lives under ``tests/unit/`` rather than ``tests/``. Integration
+tests need the opposite — the real ``.env``, pointing at the real stack — and
+when this isolation applied to them they resolved the *default* model from
+``config.py`` instead of the one actually being served, and every live call
+404'd.
+
+``ENV_FILE`` is bound when ``secai.config`` is imported, so the two suites must
+run as separate pytest invocations. They already do: ``make test`` collects
+``tests/unit`` and ``make test-integration`` collects ``tests/integration``.
 """
 
 from __future__ import annotations
@@ -11,7 +22,7 @@ import os
 from collections.abc import Iterator
 from pathlib import Path
 
-os.environ.setdefault("SECAI_ENV_FILE", str(Path(__file__).parent / "fixtures" / "absent.env"))
+os.environ.setdefault("SECAI_ENV_FILE", str(Path(__file__).parents[1] / "fixtures" / "absent.env"))
 
 import pytest
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter

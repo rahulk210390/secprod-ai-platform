@@ -136,14 +136,22 @@ class TestStructuredGeneration:
         assert result.original_balance == 250_000_000
         assert result.coupon_margin == 1.35
 
-    def test_guided_decoding_is_always_sent(self, settings: Settings) -> None:
+    def test_schema_constraint_is_always_sent(self, settings: Settings) -> None:
         client, fake = make_client([FakeCompletion(VALID_JSON)], settings)
         client.generate_structured(MESSAGES, Tranche)
 
-        body = fake.completions.calls[0]["extra_body"]
         # The guardrail: extraction is schema-constrained, never free-text.
-        assert "guided_json" in body
-        assert body["guided_json"]["properties"]["original_balance"]["type"] == "integer"
+        # response_format, not the legacy guided_json - vLLM 0.30 accepts
+        # guided_json and silently ignores it, returning unconstrained prose.
+        fmt = fake.completions.calls[0]["response_format"]
+        assert fmt["type"] == "json_schema"
+        schema = fmt["json_schema"]["schema"]
+        assert schema["properties"]["original_balance"]["type"] == "integer"
+
+    def test_legacy_guided_json_is_not_sent(self, settings: Settings) -> None:
+        client, fake = make_client([FakeCompletion(VALID_JSON)], settings)
+        client.generate_structured(MESSAGES, Tranche)
+        assert "guided_json" not in (fake.completions.calls[0].get("extra_body") or {})
 
     def test_traceparent_header_is_sent(
         self, settings: Settings, exporter: InMemorySpanExporter
