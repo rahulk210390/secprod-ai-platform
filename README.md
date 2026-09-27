@@ -508,3 +508,72 @@ In the Langfuse UI the `secai.*` attributes appear under each observation's
 > 16 GB machine, stop Docker (`make down`) and vLLM before parsing large
 > documents; the first attempt with the full stack up was killed for lack
 > of memory.
+
+### JOB-04 — Deal Term Extraction
+
+**Status: BLOCKED on model size.** The pipeline is complete and tested; the
+local 3B model does not reach the accuracy thresholds (see Metrics).
+
+```powershell
+uv run secai extract data/samples/ford_auto_2025.pdf --out ford_terms.json `
+    --gold data/gold/term_extraction/ford_auto_2025.json
+.\make.ps1 eval -Job 04              # all gold deals; report in eval/reports/
+```
+
+**How it works**
+
+1. **Parse** with JOB-03 (the Docling output is reused from the per-hash cache).
+2. **Retrieve**: pick, per question, only the relevant excerpts, labelled
+   with printed page numbers and sized to the model's window. Tranches come
+   from the tranche tables and the cover line with the printed total; facts
+   from sections such as "Closing Date" and key/value summary tables;
+   triggers from trigger, amortization, asset-review and CMBS
+   control-termination sections. Risk-factor sections never count.
+3. **Extract**: one structured-output call per excerpt
+   (`prompts/term_extraction_*.md`). The model **copies values exactly as
+   printed** ("$ 320,400,000", "30-day average SOFR + 0.30%"); it never
+   converts or calculates.
+4. **Assemble**: deterministic code parses every printed value into numbers
+   and dates, and **finds each value's citation by searching the document**.
+   A value that is not in the source gets no citation. When the model names a
+   trigger but does not quote its limit, code takes the percentage from the
+   sentence that names it (voting and historical sentences excluded). The
+   priority of payments is JOB-03's verified waterfall, never the model's.
+5. **Validate**: required fields; tranche balances add up to the printed
+   total; plausible ranges; every populated field cited; no duplicate
+   classes or incomplete coupons. Any failure routes the deal to
+   `needs_review`.
+6. **Persist and score** on the `job.term_extraction` trace.
+
+Units: rates and thresholds are percent (`4.057` means 4.057%); balances are
+currency units.
+
+**Guarantees, tested**
+
+- 18 injected model mistakes (a balance off by one, a rate as a fraction, a
+  dropped floating index, an invented tranche, a unit-less threshold, …):
+  **100% routed to `needs_review`** (`tests/unit/test_term_validation.py`).
+- Live vLLM integration test: every value the model returned is either cited
+  to a page or flagged.
+
+**Metrics** (`eval/reports/04_*.md`, 5 public EDGAR deals, Qwen2.5-3B-AWQ)
+
+| | Result | Threshold |
+|---|---|---|
+| critical-field F1 (balances, coupons, trigger thresholds) | 0.726 | 0.95 |
+| overall field F1 | 0.697 | 0.90 |
+| tranche balance / coupon precision | 1.00 / 1.00 in the best run | |
+
+Scores move by ±0.3 per deal between runs with small prompt changes, which
+is itself a finding about a 3B model. The eval re-runs deterministically from
+the extraction cache for a fixed prompt set and model.
+
+**Traces**: `job.term_extraction` → `parse`, `chunk`, `retrieve`, one
+`llm.extract` generation per excerpt (with vLLM's `llm_request` span under
+each), `validate`, `persist`. Scores: `field_f1`, `critical_field_f1`,
+`validation_pass`, `needs_review`, `latency_s`, `cost_tokens`.
+
+**Configuration**: `VLLM_MAX_MODEL_LEN` (the app sizes excerpts to it, and
+refuses to start if `VLLM_MAX_TOKENS` leaves no room), `VLLM_MAX_TOKENS`,
+`VLLM_MODEL`. Extraction results are cached per (document hash, prompt set,
+model) under `data/samples/.cache/extraction/`.

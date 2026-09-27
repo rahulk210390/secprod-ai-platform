@@ -99,6 +99,9 @@ class VLLMSettings(BaseSettings):
     max_retries: int = 3
     temperature: float = 0.0
     max_tokens: int = 4096
+    # The server's context window (docker-compose passes the same variable to
+    # vLLM). The app sizes each extraction excerpt to fit beside max_tokens.
+    max_model_len: int = 4096
 
     @property
     def effective_router_model(self) -> str:

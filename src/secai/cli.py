@@ -80,5 +80,66 @@ def parse(
     typer.echo(json.dumps(summary, indent=2))
 
 
+@app.command()
+def extract(
+    path: Annotated[Path, typer.Argument(exists=True, dir_okay=False, help="prospectus PDF")],
+    out: Annotated[Path | None, typer.Option(help="write the DealTerms JSON here")] = None,
+    deal_id: Annotated[str | None, typer.Option(help="recorded on the trace")] = None,
+    gold: Annotated[
+        Path | None, typer.Option(exists=True, dir_okay=False, help="gold JSON to score against")
+    ] = None,
+    fresh: Annotated[bool, typer.Option(help="ignore the extraction cache")] = False,
+) -> None:
+    """Extract deal terms from a prospectus (JOB-04): cited, validated, traced."""
+    from secai.jobs.term_extraction.pipeline import run_term_extraction
+    from secai.telemetry import shutdown_telemetry
+
+    samples = get_settings().storage.documents_dir
+    try:
+        result = run_term_extraction(
+            path,
+            deal_id=deal_id,
+            gold=json.loads(gold.read_text(encoding="utf-8")) if gold else None,
+            parse_cache_dir=samples / ".cache",
+            extraction_cache_dir=None if fresh else samples / ".cache" / "extraction",
+        )
+    finally:
+        shutdown_telemetry()
+
+    if out is not None:
+        out.write_text(result.terms.model_dump_json(indent=2), encoding="utf-8")
+    terms = result.terms
+    summary: dict[str, object] = {
+        "deal_name": terms.deal_name,
+        "closing_date": str(terms.closing_date) if terms.closing_date else None,
+        "tranches": [
+            {
+                "class": t.class_name,
+                "balance": str(t.original_balance),
+                "coupon": f"{t.fixed_rate_pct}%"
+                if t.fixed_rate_pct is not None
+                else f"{t.index} + {t.margin_pct}%",
+                "page": (t.citations.get("original_balance") or t.citations.get("coupon")),
+            }
+            for t in terms.tranches
+        ],
+        "triggers": [
+            {"type": t.trigger_type, "thresholds_pct": [str(v) for v in t.thresholds_pct]}
+            for t in terms.triggers
+        ],
+        "priority_of_payments_steps": len(terms.priority_of_payments),
+        "validation": "pass" if result.report.passed else "needs_review",
+        "issues": [f"{i.code}: {i.field}" for i in result.report.issues],
+        "citation_rate": round(result.citation_rate, 3),
+        "llm_calls": result.llm_calls,
+        "tokens": result.tokens,
+        "trace_id": result.trace_id,
+    }
+    if result.evaluation is not None:
+        summary["critical_field_f1"] = round(result.evaluation.critical_field_f1, 3)
+        summary["field_f1"] = round(result.evaluation.field_f1, 3)
+    typer.echo(json.dumps(summary, indent=2, default=lambda o: o.model_dump()))
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

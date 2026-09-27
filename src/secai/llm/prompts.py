@@ -21,7 +21,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from secai.config import REPO_ROOT
+from secai.config import REPO_ROOT, get_settings
 from secai.telemetry.setup import get_client
 
 logger = logging.getLogger(__name__)
@@ -79,8 +79,14 @@ def load_local(name: str) -> Prompt:
 
 
 def get_prompt(name: str, *, label: str | None = None, use_langfuse: bool = True) -> Prompt:
-    """Resolve a prompt, preferring Langfuse and falling back to the repo."""
-    if use_langfuse:
+    """Resolve a prompt, preferring Langfuse and falling back to the repo.
+
+    Langfuse is only asked when it is configured and enabled: without real
+    credentials the request cannot succeed, and it would put a network call
+    (and a 401 in the logs) into offline runs and hermetic unit tests.
+    """
+    langfuse = get_settings().langfuse
+    if use_langfuse and langfuse.enabled and langfuse.is_configured:
         try:
             fetched = (
                 get_client().get_prompt(name, label=label)
@@ -96,11 +102,13 @@ def get_prompt(name: str, *, label: str | None = None, use_langfuse: bool = True
                 version=str(getattr(fetched, "version", "unknown")),
                 source="langfuse",
             )
-        except Exception:
+        except Exception as exc:
+            # Expected whenever a prompt has not been published to Langfuse, so
+            # one line, not a traceback per prompt per call.
             logger.warning(
-                "could not fetch prompt %r from Langfuse; using the local copy",
+                "could not fetch prompt %r from Langfuse (%s); using the local copy",
                 name,
-                exc_info=True,
+                type(exc).__name__,
             )
 
     return load_local(name)

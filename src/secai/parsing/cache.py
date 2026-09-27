@@ -9,6 +9,7 @@ is never served stale output.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,14 @@ from typing import Any
 from secai.config import ParsingSettings
 from secai.parsing.docling_parser import Converter, DoclingResult, parse_pdf
 from secai.parsing.models import Block, Table
-from secai.parsing.pipeline import file_sha256
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def cache_path(pdf: Path, cache_dir: Path, digest: str | None = None) -> Path:

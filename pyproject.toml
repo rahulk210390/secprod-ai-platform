@@ -92,6 +92,7 @@ ignore = ["ANN401"]
 "tests/**" = ["ANN", "S101"]
 # Operator-facing helper scripts: stdout is the interface.
 "scripts/**" = ["T201"]
+"src/secai/eval/run.py" = ["T201"]
 
 [tool.mypy]
 python_version = "3.12"

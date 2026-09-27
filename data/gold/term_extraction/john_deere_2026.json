@@ -1,0 +1,32 @@
+{
+  "id": "john_deere_2026",
+  "reviewed": true,
+  "review_notes": "Built 2026-09-27 from the document text without the LLM, before any model output was seen. Every value was read on the page given in 'evidence'. Pending: human sign-off by the project owner.",
+  "deal_name": "John Deere Owner Trust 2026",
+  "closing_date": "2026-03-18",
+  "asset_class": "equipment",
+  "payment_frequency": "monthly",
+  "cleanup_call_pct": "10",
+  "stated_total_balance": "779883000",
+  "tranches": [
+    {"class_key": "A-1", "original_balance": "213000000", "coupon_type": "fixed", "fixed_rate_pct": "3.823"},
+    {"class_key": "A-2A", "original_balance": "200000000", "coupon_type": "fixed", "fixed_rate_pct": "3.85"},
+    {"class_key": "A-2B", "original_balance": "57500000", "coupon_type": "floating", "margin_pct": "0.34"},
+    {"class_key": "A-3", "original_balance": "257500000", "coupon_type": "fixed", "fixed_rate_pct": "3.87"},
+    {"class_key": "A-4", "original_balance": "51883000", "coupon_type": "fixed", "fixed_rate_pct": "4.04"}
+  ],
+  "triggers": [
+    {"trigger_type": "Asset Representations Review Delinquency Trigger", "thresholds_pct": ["14.60"]}
+  ],
+  "coverage_tests": [],
+  "priority_of_payments": {"start_page": 95, "step_count": 10},
+  "evidence": {
+    "deal_name": "cover: $779,883,000 John Deere Owner Trust 2026",
+    "closing_date": "p1 Closing Date: March 18, 2026",
+    "payment_frequency": "cover: 15th day of each month",
+    "cleanup_call_pct": "p3 / p74: note value 10% or less of the initial note value",
+    "tranches": "p1 summary table (A-2B 'Benchmark + 0.34%'); cover heading total $779,883,000",
+    "triggers": "p44: delinquency trigger percentage 14.60%. Voting (5% of noteholders) excluded.",
+    "ratings_wal": "not stated (p6: two hired NRSROs, unnamed)"
+  }
+}
