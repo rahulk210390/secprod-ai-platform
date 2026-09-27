@@ -41,6 +41,7 @@ from secai.telemetry.tracing import (
     record_exception,
     score_span,
     score_trace,
+    set_span_attributes,
     trace_url,
 )
 
@@ -76,6 +77,7 @@ __all__ = [
     "reset_telemetry",
     "score_span",
     "score_trace",
+    "set_span_attributes",
     "shutdown_telemetry",
     "trace_url",
     "traced_async_http_client",

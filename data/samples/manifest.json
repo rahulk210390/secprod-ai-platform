@@ -1,0 +1,50 @@
+{
+  "description": "Public SEC EDGAR prospectuses used as JOB-03 parsing samples. Fetched by scripts/fetch_samples.py; the documents themselves are never committed.",
+  "samples": [
+    {
+      "id": "ford_auto_2025",
+      "asset_class": "auto_loan",
+      "issuer": "Ford Credit Auto Owner Trust (Ford Credit Auto Receivables Two LLC)",
+      "form": "424B2",
+      "filed": "2025-09-25",
+      "url": "https://www.sec.gov/Archives/edgar/data/1129987/000110465925093377/tm2526028d6_424b2.htm",
+      "sha256": "8cf1fef0925fb2806357981da65a635cfa7e3a349d49fff60f607632a92c932b"
+    },
+    {
+      "id": "john_deere_2026",
+      "asset_class": "equipment",
+      "issuer": "John Deere Owner Trust (John Deere Receivables LLC)",
+      "form": "424B5",
+      "filed": "2026-03-12",
+      "url": "https://www.sec.gov/Archives/edgar/data/1762590/000110465926026992/tmb-20260312x424b5.htm",
+      "sha256": "d4b0aaf689aab900f03f19295bfacf8f7d7a2df07e6ff5d0fee2c86673622fdb"
+    },
+    {
+      "id": "verizon_2025",
+      "asset_class": "device_payment",
+      "issuer": "Verizon Master Trust (Verizon ABS II LLC)",
+      "form": "424B5",
+      "filed": "2025-07-29",
+      "url": "https://www.sec.gov/Archives/edgar/data/1836995/000092963825002810/a424b5.htm",
+      "sha256": "d4f7057df885a3f34b52f68035b55813f9c16e76c7cfe096bb452deefc2b36e1"
+    },
+    {
+      "id": "capital_one_2025",
+      "asset_class": "credit_card",
+      "issuer": "Capital One Multi-asset Execution Trust",
+      "form": "424B5",
+      "filed": "2025-09-11",
+      "url": "https://www.sec.gov/Archives/edgar/data/1163321/000119312525201304/d887823d424b5.htm",
+      "sha256": "b47b0e8b0a81e6c5104c98d531ed0d1cbe049b1553b240d1a2fd8b7eedbb75f5"
+    },
+    {
+      "id": "bank5_cmbs_2025",
+      "asset_class": "cmbs",
+      "issuer": "BANK5 (Wells Fargo Commercial Mortgage Securities Inc.)",
+      "form": "424B2",
+      "filed": "2025-04-02",
+      "url": "https://www.sec.gov/Archives/edgar/data/850779/000153949725001104/n4899-x18_424b2.htm",
+      "sha256": "c5b7b25406f4f08a4dc9b6f5a2e5247a5978f72478769870233fd20dfc28f5b8"
+    }
+  ]
+}

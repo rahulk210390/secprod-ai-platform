@@ -1,0 +1,64 @@
+{
+  "id": "ford_auto_2025",
+  "reviewed": true,
+  "review_notes": "Verified 2026-09-27: every step of every waterfall below was confirmed, in order, against an independent text extraction (pdfplumber, scripts/crosscheck_gold.py); Ford p82-84 and Capital One p134-140 were also read in full against the PDF. Pending: human sign-off by the project owner.",
+  "page_count": 180,
+  "sections": [
+    "credit_enhancement",
+    "description_of_notes",
+    "events_of_default",
+    "post_acceleration_priority_of_payments",
+    "priority_of_payments"
+  ],
+  "waterfalls": [
+    {
+      "title_contains": "Priority of Payments",
+      "start_page": 13,
+      "steps": [
+        "Transaction Fees and Expenses - to the indenture trustee, th",
+        "Servicing Fee - to the servicer, all unpaid servicing fees,",
+        "Class A Note Interest - to the Class A noteholders, interest",
+        "First Priority Principal Payment - to the Class A noteholder",
+        "Class B Note Interest - to the Class B noteholders, interest",
+        "Second Priority Principal Payment - to the Class A and Class",
+        "Class C Note Interest - to the Class C noteholders, interest",
+        "Reserve Account - to the reserve account, the amount, if any",
+        "Regular Principal Payment - to the noteholders, sequentially",
+        "Additional Fees and Expenses - to the indenture trustee, the",
+        "Residual Interest - to the holder of the residual interest i"
+      ]
+    },
+    {
+      "title_contains": "Priority of Payments",
+      "start_page": 82,
+      "steps": [
+        "to the indenture trustee, the owner trustee and the asset re",
+        "to the servicer, all unpaid servicing fees,",
+        "to the Class A noteholders, interest due on the Class A note",
+        "to the Class A noteholders, sequentially by class, in each c",
+        "to the Class B noteholders, interest due on the Class B note",
+        "to the Class A and Class B noteholders, sequentially by clas",
+        "to the Class C noteholders, interest due on the Class C note",
+        "to the reserve account, the amount, if any, required to repl",
+        "to the noteholders, sequentially by class, in each case unti",
+        "to the indenture trustee, the owner trustee and the asset re",
+        "to the holder of the residual interest in the trust, all rem"
+      ]
+    },
+    {
+      "title_contains": "Post-Acceleration Priority of Payments",
+      "start_page": 84,
+      "steps": [
+        "to the indenture trustee, the owner trustee and the asset re",
+        "to the servicer, all unpaid servicing fees,",
+        "to the Class A noteholders, interest due on the Class A note",
+        "to the Class A noteholders, sequentially by class, principal",
+        "to the Class B noteholders, interest due on the Class B note",
+        "to the Class B noteholders, principal of the Class B notes u",
+        "to the Class C noteholders, interest due on the Class C note",
+        "to the Class C noteholders, principal of the Class C notes u",
+        "to the holder of the residual interest in the trust, any rem"
+      ]
+    }
+  ]
+}

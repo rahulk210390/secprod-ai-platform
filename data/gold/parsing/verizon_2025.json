@@ -1,0 +1,99 @@
+{
+  "id": "verizon_2025",
+  "reviewed": true,
+  "review_notes": "Verified 2026-09-27: every step of every waterfall below was confirmed, in order, against an independent text extraction (pdfplumber, scripts/crosscheck_gold.py); Ford p82-84 and Capital One p134-140 were also read in full against the PDF. Pending: human sign-off by the project owner.",
+  "page_count": 222,
+  "sections": [
+    "description_of_notes",
+    "events_of_default",
+    "post_acceleration_priority_of_payments",
+    "priority_of_payments",
+    "trigger_events"
+  ],
+  "waterfalls": [
+    {
+      "title_contains": "Priority of Payments",
+      "start_page": 27,
+      "steps": [
+        "Transaction Fees and Expenses - pro rata (A) to the Master C",
+        "Servicing Fee - to the Servicer, the Series 2023-1 Allocatio",
+        "Class A Note Interest - to the Noteholders of the Class A No",
+        "First Priority Principal Payment - (a) during the Revolving ",
+        "Class B Note Interest - to the Noteholders of the Class B No",
+        "Second Priority Principal Payment - (a) during the Revolving",
+        "Class C Note Interest - to the Noteholders of the Class C No",
+        "Third Priority Principal Payment - (a) during the Revolving ",
+        "Reserve Account - (1) first, if applicable, to the Letter of",
+        "Regular Priority Principal Payment - (a) during the Revolvin",
+        "Supplemental Successor Servicing Fee - to any successor serv",
+        "Additional Interest Amounts - to the Noteholders, any accrue",
+        "Make-Whole - to the Noteholders, any Make-Whole Payments due",
+        "Additional Fees and Expenses - pro rata, (A) to the Indentur",
+        "Additional Trust Expenses - to any other parties as the Admi",
+        "Letter of Credit Provider Fees - if applicable, to any Lette",
+        "Class R Interest - to the Class R Interest, all remaining Se"
+      ]
+    },
+    {
+      "title_contains": "Priority Principal Payments, if any, will be applied on each Payment Date during",
+      "start_page": 130,
+      "steps": [
+        "to the Class A Notes until paid in full;",
+        "to the Class B Notes until paid in full; and",
+        "to the Class C Notes until paid in full."
+      ]
+    },
+    {
+      "title_contains": "Make-Whole Payments, if any, will be applied on each Payment Date in the followi",
+      "start_page": 133,
+      "steps": [
+        "to the Class A Notes until paid in full;",
+        "to the Class B Notes until paid in full; and",
+        "to the Class C Notes until paid in full."
+      ]
+    },
+    {
+      "title_contains": "Priority of Payments",
+      "start_page": 133,
+      "steps": [
+        "pro rata (A) to the Master Collateral Agent, the Series 2023",
+        "to the Servicer, the Series 2023-1 Allocation Percentage of ",
+        "to the Noteholders of the Class A Notes, interest due on the",
+        "(a) during the Revolving Period, for deposit to the Principa",
+        "to the Noteholders of the Class B Notes, interest due on the",
+        "(a) during the Revolving Period, for deposit to the Principa",
+        "to the Noteholders of the Class C Notes, interest due on the",
+        "(a) during the Revolving Period, for deposit to the Principa",
+        "(a) first, if applicable, to the Letter of Credit Provider, ",
+        "(a) during the Revolving Period, for deposit to the Principa",
+        "to any successor servicer, the product of the Series 2023-1 ",
+        "to the Noteholders, any accrued and unpaid Additional Intere",
+        "to the Noteholders, any Make-Whole Payments due on the Notes",
+        "pro rata, (A) to the Indenture Trustee, all remaining amount",
+        "to any other parties as the Administrator has identified, an",
+        "if applicable, to any Letter of Credit Provider, all amounts",
+        "to the Class R Interest, all remaining Series 2023-1 Availab"
+      ]
+    },
+    {
+      "title_contains": "Post-Acceleration Priority of Payments",
+      "start_page": 136,
+      "steps": [
+        "pro rata (A) to the Indenture Trustee, all amounts due to th",
+        "to the Servicer, the Series 2023-1 Allocation Percentage of ",
+        "to the Noteholders of the Class A Notes, interest due on the",
+        "to the Noteholders of the Class A Notes, principal of the Cl",
+        "to the Noteholders of the Class B Notes, interest due on the",
+        "to the Noteholders of the Class B Notes, principal of the Cl",
+        "to the Noteholders of the Class C Notes, interest due on the",
+        "to the Noteholders of the Class C Notes, principal of the Cl",
+        "to any successor servicer, the Series 2023-1 Group Allocated",
+        "to the Noteholders, any accrued and unpaid Additional Intere",
+        "to the Noteholders, any Make-Whole Payments due on the Notes",
+        "to any other parties as the Administrator has identified, an",
+        "if applicable, to any Letter of Credit Provider, all amounts",
+        "to the Class R Interest, all remaining Series 2023-1 Availab"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+# PDFs are binary even when their streams happen to be ASCII (reportlab's
+# fixtures are): line-ending conversion would corrupt them on checkout.
+*.pdf binary

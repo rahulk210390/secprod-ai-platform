@@ -125,6 +125,23 @@ class StorageSettings(BaseSettings):
     reports_dir: Path = REPO_ROOT / "eval" / "reports"
 
 
+class ParsingSettings(BaseSettings):
+    """Document parsing (JOB-03)."""
+
+    model_config = SettingsConfigDict(**_BASE_CONFIG, env_prefix="SECAI_PARSING_")
+
+    # Docling converts this many pages per call. Its layout models hold every
+    # page of a call in memory, so a 400-page prospectus in one call does not
+    # fit on a 16 GB host running the rest of the stack.
+    batch_pages: int = Field(default=20, ge=1)
+    # Re-read a page's tables with pdfplumber when Docling finds none there.
+    table_fallback: bool = True
+    # Prospectuses are born-digital; OCR models cost RAM and add nothing.
+    do_ocr: bool = False
+    # CPU threads for Docling's models. Parsing runs on CPU; the GPU is vLLM's.
+    num_threads: int = Field(default=4, ge=1)
+
+
 class PIISettings(BaseSettings):
     """Fields and patterns scrubbed before anything is exported (JOB-01)."""
 
@@ -160,7 +177,12 @@ class Settings(BaseSettings):
     vllm: VLLMSettings = Field(default_factory=VLLMSettings)
     db: DatabaseSettings = Field(default_factory=DatabaseSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
+    parsing: ParsingSettings = Field(default_factory=ParsingSettings)
     pii: PIISettings = Field(default_factory=PIISettings)
+
+    # SEC EDGAR fair-access policy: automated downloads must declare a name and
+    # contact. Only scripts/fetch_samples.py uses it.
+    sec_user_agent: str = Field(default="", validation_alias="SEC_USER_AGENT")
 
 
 @lru_cache(maxsize=1)

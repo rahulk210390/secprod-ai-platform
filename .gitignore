@@ -32,6 +32,8 @@ PROGRESS.md
 # ---------------------------------------------------------------------------
 data/samples/*
 !data/samples/.gitkeep
+# The list of public filings to fetch (URLs + hashes) is tracked; the files are not.
+!data/samples/manifest.json
 # Loan tapes and servicer reports, wherever they are dropped.
 *.xlsx
 *.xls

@@ -41,6 +41,10 @@ parsing = [
     "docling>=2.15",
     "pdfplumber>=0.11",
     "openpyxl>=3.1",
+    # Docling's layout models run on CPU: the GPU belongs to vLLM, and the
+    # CUDA wheels are ~2.5 GB. Listed directly so the uv source below applies.
+    "torch>=2.4",
+    "torchvision>=0.19",
 ]
 
 [dependency-groups]
@@ -53,10 +57,21 @@ dev = [
     "mypy>=1.13",
     "pre-commit>=4.0",
     "types-requests",
+    # generates the synthetic prospectus PDFs under tests/fixtures/parsing
+    "reportlab>=4.2",
 ]
 
 [project.scripts]
 secai = "secai.cli:app"
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+torchvision = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/secai"]
@@ -87,7 +102,7 @@ warn_unreachable = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["langfuse.*", "docling.*", "pdfplumber.*"]
+module = ["langfuse.*", "docling.*", "pdfplumber.*", "pypdfium2.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

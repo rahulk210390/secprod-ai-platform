@@ -1,0 +1,124 @@
+{
+  "id": "bank5_cmbs_2025",
+  "reviewed": true,
+  "review_notes": "Verified 2026-09-27: every step of every waterfall below was confirmed, in order, against an independent text extraction (pdfplumber, scripts/crosscheck_gold.py); Ford p82-84 and Capital One p134-140 were also read in full against the PDF. Pending: human sign-off by the project owner. Excluded: p656, a single mortgage loan's cash-sweep clause in Annex A (an ordered list, but not a payment priority of this deal).",
+  "page_count": 812,
+  "sections": [
+    "description_of_notes",
+    "priority_of_payments",
+    "trigger_events"
+  ],
+  "waterfalls": [
+    {
+      "title_contains": "On each distribution date, funds available for distribution to the certificates ",
+      "start_page": 41,
+      "steps": [
+        "to the Class A-1, Class A-2, Class A-3, Class X-A, Class X-B",
+        "to the Class A-1, Class A-2 and Class A-3 certificates, as f",
+        "to the Class A-1, Class A-2 and Class A-3 certificates to re",
+        "to the Class A-S certificates as follows: (a) to interest on",
+        "to the Class B certificates as follows: (a) to interest on t",
+        "to the Class C certificates as follows: (a) to interest on t"
+      ]
+    },
+    {
+      "title_contains": "All amounts tendered by the related borrowers or otherwise available for payment",
+      "start_page": 248,
+      "steps": [
+        "first, to pay accrued and unpaid interest on each of the six",
+        "second, to each The Spiral Senior Loan Holder in an amount e",
+        "third, to each The Spiral Senior Loan Holder, to the Compone",
+        "fourth, to pay accrued and unpaid interest on the Components",
+        "fifth, to each The Spiral Subordinate Companion Loan Holder ",
+        "sixth, to each The Spiral Subordinate Companion Loan Holder,",
+        "seventh, to pay yield maintenance premiums then due and paya",
+        "eighth, to pay default interest and late payment charges the",
+        "ninth, if any excess amount is available to be distributed i"
+      ]
+    },
+    {
+      "title_contains": "Priority of Distributions",
+      "start_page": 340,
+      "steps": [
+        "to the Class A-1, Class A-2, Class A-3, Class X-A, Class X-B",
+        "to the Class A-1, Class A-2 and Class A-3 certificates, in r",
+        "to the Class A-1, Class A-2 and Class A-3 certificates, firs",
+        "to the Class A-S certificates, in respect of interest, up to",
+        "after the Certificate Balances of the Class A-1, Class A-2 a",
+        "to the Class A-S certificates, first, (i) up to an amount eq",
+        "to the Class B certificates, in respect of interest, up to a",
+        "after the Certificate Balances of the Class A Certificates h",
+        "to the Class B certificates, first, (i) up to an amount equa",
+        "to the Class C certificates, in respect of interest, up to a",
+        "after the Certificate Balances of the Class A Certificates a",
+        "to the Class C certificates, first (i) up to an amount equal",
+        "to the Class D certificates, in respect of interest, up to a",
+        "after the Certificate Balances of the Class A Certificates a",
+        "to the Class D certificates, first (i) up to an amount equal",
+        "to the Class E certificates, in respect of interest, up to a",
+        "after the Certificate Balances of the Class A Certificates a",
+        "to the Class E certificates, first (i) up to an amount equal",
+        "to the Class F-RR certificates, in respect of interest, up t",
+        "after the Certificate Balances of the Class A Certificates a",
+        "to the Class F-RR certificates, first (i) up to an amount eq",
+        "to the Class G-RR certificates, in respect of interest, up t",
+        "after the Certificate Balances of the Class A Certificates a",
+        "to the Class G-RR certificates, first (i) up to an amount eq",
+        "to the Class J-RR certificates, in respect of interest, up t",
+        "after the Certificate Balances of the Class A Certificates a",
+        "to the Class J-RR certificates, first (i) up to an amount eq",
+        "to the Class K-RR certificates, in respect of interest, up t",
+        "after the Certificate Balances of the Class A Certificates a",
+        "to the Class K-RR certificates, first (i) up to an amount eq"
+      ]
+    },
+    {
+      "title_contains": "Absent express provisions in the related Mortgage Loan documents (and, with resp",
+      "start_page": 349,
+      "steps": [
+        "as a recovery of any unreimbursed Advances (including any Wo",
+        "as a recovery of Nonrecoverable Advances and any interest on",
+        "to the extent not previously so allocated pursuant to clause",
+        "to the extent not previously so allocated pursuant to clause",
+        "as a recovery of accrued and unpaid interest on such Mortgag",
+        "as a recovery of amounts to be currently allocated to the pa",
+        "as a recovery of any other reserves to the extent then requi",
+        "as a recovery of any Yield Maintenance Charge or Prepayment ",
+        "as a recovery of any late payment charges and default intere",
+        "as a recovery of any assumption fees and Modification Fees t",
+        "as a recovery of any other amounts then due and owing under ",
+        "as a recovery of any remaining principal of such Mortgage Lo"
+      ]
+    },
+    {
+      "title_contains": "Collections by or on behalf of the issuing entity in respect of any REO Property",
+      "start_page": 351,
+      "steps": [
+        "as a recovery of any unreimbursed Advances (including any Wo",
+        "as a recovery of Nonrecoverable Advances and any interest on",
+        "to the extent not previously so allocated pursuant to clause",
+        "to the extent not previously so allocated pursuant to clause",
+        "as a recovery of accrued and unpaid interest on such Mortgag",
+        "as a recovery of any Yield Maintenance Charge or Prepayment ",
+        "as a recovery of any late payment charges and default intere",
+        "as a recovery of any assumption fees and Modification Fees t",
+        "as a recovery of any other amounts then due and owing under "
+      ]
+    },
+    {
+      "title_contains": "The certificate administrator will be required to allocate any Realized Losses a",
+      "start_page": 358,
+      "steps": [
+        "to the Class K-RR certificates;",
+        "to the Class J-RR certificates;",
+        "to the Class G-RR certificates;",
+        "to the Class F-RR certificates;",
+        "to the Class E certificates;",
+        "to the Class D certificates;",
+        "to the Class C certificates;",
+        "to the Class B certificates; and",
+        "to the Class A-S certificates."
+      ]
+    }
+  ]
+}

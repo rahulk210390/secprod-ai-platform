@@ -27,6 +27,7 @@ from secai.telemetry.attributes import (
     ATTR_MODEL,
     ATTR_PROMPT_VERSION,
     BOOLEAN_SCORES,
+    LANGFUSE_METADATA_PREFIX,
     SPAN_LLM_EXTRACT,
     job_span_name,
 )
@@ -166,13 +167,33 @@ def llm_generation(
             raise
 
 
-def _set_attributes(span: Any, attributes: Mapping[str, str]) -> None:
-    """Set raw OTel attributes on a Langfuse span wrapper."""
+AttributeValue = str | bool | int | float
+
+
+def _set_attributes(span: Any, attributes: Mapping[str, AttributeValue]) -> None:
+    """Set attributes on a Langfuse span wrapper, visible to OTel *and* Langfuse.
+
+    Each attribute is written twice: as itself, for OTel consumers (the
+    Collector, other backends, the in-memory test exporter), and under
+    ``langfuse.observation.metadata.``, because Langfuse drops attributes it
+    does not recognise. Until JOB-03 only the first was written, and no
+    ``secai.*`` attribute ever reached Langfuse.
+    """
     otel_span = getattr(span, "_otel_span", None)
     if otel_span is None:
         return
     for key, value in attributes.items():
         otel_span.set_attribute(key, value)
+        otel_span.set_attribute(f"{LANGFUSE_METADATA_PREFIX}{key}", value)
+
+
+def set_span_attributes(span: Any, attributes: Mapping[str, AttributeValue]) -> None:
+    """Attach ``secai.*`` attributes to a span yielded by :func:`job_span`.
+
+    For measurements only known once the work is done (page counts, durations),
+    so they cannot be passed when the span opens.
+    """
+    _set_attributes(span, attributes)
 
 
 def record_exception(span: Any, exc: BaseException) -> None:

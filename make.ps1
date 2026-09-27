@@ -40,6 +40,7 @@ secai targets (Windows shim for the Makefile)
   langfuse-auth      print LANGFUSE_AUTH (base64 of the key pair) from .env
   env-check          check .env still matches the running stack
   env-restore        rebuild .env from the running containers
+  fetch-samples      download the public EDGAR samples and print them to PDF
 
   up                 start the full stack (includes vLLM; needs an NVIDIA GPU)
   pull-llm           pull the pinned vLLM image (large; foreground)
@@ -66,7 +67,7 @@ secai targets (Windows shim for the Makefile)
     }
 
     'setup' {
-        Invoke-Step 'uv' @('sync', '--all-groups')
+        Invoke-Step 'uv' @('sync', '--all-groups', '--extra', 'parsing')
         if (-not (Test-Path '.env')) {
             Copy-Item '.env.example' '.env'
             Write-Host 'created .env from .env.example - fill in the secrets' -ForegroundColor Yellow
@@ -78,6 +79,7 @@ secai targets (Windows shim for the Makefile)
     'langfuse-auth' { Uvr @('python', 'scripts/langfuse_auth.py') }
     'env-check'     { Uvr @('python', 'scripts/restore_env.py', '--check') }
     'env-restore'   { Uvr @('python', 'scripts/restore_env.py') }
+    'fetch-samples' { Uvr @('python', 'scripts/fetch_samples.py') }
 
     'up'      { Compose @('--profile', 'llm', 'up', '-d', '--wait') }
     'up-core' { Compose @('up', '-d', '--wait', 'postgres', 'langfuse-web', 'langfuse-worker', 'otel-collector') }
