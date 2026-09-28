@@ -13,11 +13,11 @@ service-account*.json
 .secrets/
 
 # ---------------------------------------------------------------------------
-# Client specification & internal work log — not ours to publish
+# Project specification & internal work log — kept local
 #
-# CLAUDE.md is the client's business specification (job backlog, KPI
-# thresholds, commercial workflow) and PROGRESS.md is the internal work log.
-# Both stay local. Keep working from them; they are simply never committed.
+# CLAUDE.md is the project specification (job backlog, KPI thresholds,
+# workflow) and PROGRESS.md is the internal work log. Both stay local:
+# keep working from them; they are simply never committed.
 # ---------------------------------------------------------------------------
 CLAUDE.md
 PROGRESS.md
