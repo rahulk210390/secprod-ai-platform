@@ -73,6 +73,11 @@ class LLMClient:
         # through a custom http_client: the OpenAI SDK is built on httpx2 while
         # the rest of the codebase uses httpx, and coupling to whichever the SDK
         # vendors today would break on its next major release.
+        # Running token totals across this client's calls, for per-job cost
+        # scores (CLAUDE.md JOB-04 `cost_tokens`). Failed validations count:
+        # they still spent the tokens.
+        self.usage_total: dict[str, int] = {"input": 0, "output": 0, "total": 0}
+        self.calls = 0
         self._client = openai_client or OpenAI(
             base_url=self._vllm.base_url,
             api_key=self._vllm.api_key,
@@ -150,6 +155,9 @@ class LLMClient:
             # Attach usage before validating: a schema failure is still a call
             # that cost tokens, and the trace should say so.
             span.update(output=content, usage_details=usage, metadata={"latency_s": latency_s})
+            self.calls += 1
+            for key, value in usage.items():
+                self.usage_total[key] = self.usage_total.get(key, 0) + value
 
             return parse_structured(content, schema)
 

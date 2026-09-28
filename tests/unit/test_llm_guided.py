@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel, Field
 
+from secai.config import reload_settings
 from secai.llm.errors import LLMEmptyResponseError, LLMSchemaError
 from secai.llm.guided import json_schema_for, parse_structured, response_format_for
 from secai.llm.prompts import Prompt, get_prompt, load_local, local_prompt_path
@@ -115,8 +116,22 @@ class TestPrompts:
         with pytest.raises(KeyError, match="needs a value"):
             prompt.render(wrong="x")
 
+    @pytest.fixture
+    def langfuse_configured(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
+        monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
+        reload_settings()
+
+    def test_unconfigured_langfuse_is_never_asked(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Offline runs and unit tests have no credentials: no request, no 401.
+        def explode() -> object:
+            raise AssertionError("Langfuse must not be consulted without credentials")
+
+        monkeypatch.setattr("secai.llm.prompts.get_client", explode)
+        assert get_prompt("deal_qa").source == "local"
+
     def test_falls_back_to_local_when_langfuse_is_unavailable(
-        self, monkeypatch: pytest.MonkeyPatch
+        self, monkeypatch: pytest.MonkeyPatch, langfuse_configured: None
     ) -> None:
         class Broken:
             def get_prompt(self, *args: object, **kwargs: object) -> object:
@@ -127,7 +142,9 @@ class TestPrompts:
         # A Langfuse outage must not take extraction down with it.
         assert prompt.source == "local"
 
-    def test_langfuse_prompt_wins_when_available(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_langfuse_prompt_wins_when_available(
+        self, monkeypatch: pytest.MonkeyPatch, langfuse_configured: None
+    ) -> None:
         class Fetched:
             prompt = "remote template"
             version = 7

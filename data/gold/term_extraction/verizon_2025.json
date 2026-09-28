@@ -1,0 +1,33 @@
+{
+  "id": "verizon_2025",
+  "reviewed": true,
+  "review_notes": "Built 2026-09-27 from the document text without the LLM, before any model output was seen. This prospectus re-offers the Class B notes of Series 2023-1 (first issued 2023-01-26); the closing date is that of this offering. Pending: human sign-off by the project owner.",
+  "deal_name": "Verizon Master Trust",
+  "closing_date": "2025-07-31",
+  "asset_class": "device_payment",
+  "payment_frequency": "monthly",
+  "cleanup_call_pct": null,
+  "stated_total_balance": "1000000000",
+  "tranches": [
+    {"class_key": "A", "original_balance": "891010000", "coupon_type": "fixed", "fixed_rate_pct": "4.49"},
+    {"class_key": "B", "original_balance": "68120000", "coupon_type": "fixed", "fixed_rate_pct": "4.74"},
+    {"class_key": "C", "original_balance": "40870000", "coupon_type": "fixed", "fixed_rate_pct": "4.98"}
+  ],
+  "triggers": [
+    {"trigger_type": "Amortization Event (annualised write-off ratio)", "thresholds_pct": ["10.00"]},
+    {"trigger_type": "Amortization Event (91+ day delinquency ratio)", "thresholds_pct": ["2.00"]},
+    {"trigger_type": "Amortization Event (allocated pool balance)", "thresholds_pct": ["50.00"]},
+    {"trigger_type": "Delinquency Trigger (asset representations review)", "thresholds_pct": ["5.0"]}
+  ],
+  "coverage_tests": [],
+  "priority_of_payments": {"start_page": 133, "step_count": 17},
+  "evidence": {
+    "deal_name": "cover: Verizon Master Trust, Series 2023-1",
+    "closing_date": "pdf 2: delivered on or about July 31, 2025, the closing date",
+    "payment_frequency": "pdf 2: 20th day of each month",
+    "cleanup_call_pct": "none: optional redemption at any time (p17), no percentage clean-up",
+    "tranches": "p17 summary table; cover total $1,000,000,000",
+    "triggers": "p23 Amortization Events: exceeds 10.00%, exceeds 2.00%, less than 50.00%; p119 delinquency trigger rate 5.0%",
+    "ratings_wal": "not stated (p34)"
+  }
+}

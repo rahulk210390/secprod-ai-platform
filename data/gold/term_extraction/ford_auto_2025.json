@@ -1,0 +1,34 @@
+{
+  "id": "ford_auto_2025",
+  "reviewed": true,
+  "review_notes": "Built 2026-09-27 from the document text without the LLM (scripts: scratch evidence dumps of the parsed cache), before any model output was seen. Every value was read on the page given in 'evidence'. Pending: human sign-off by the project owner.",
+  "deal_name": "Ford Credit Auto Owner Trust 2025-B",
+  "closing_date": "2025-09-26",
+  "asset_class": "auto_loan",
+  "payment_frequency": "monthly",
+  "cleanup_call_pct": "10",
+  "stated_total_balance": "1578940000",
+  "tranches": [
+    {"class_key": "A-1", "original_balance": "320400000", "coupon_type": "fixed", "fixed_rate_pct": "4.057"},
+    {"class_key": "A-2A", "original_balance": "325000000", "coupon_type": "fixed", "fixed_rate_pct": "3.88"},
+    {"class_key": "A-2B", "original_balance": "217400000", "coupon_type": "floating", "margin_pct": "0.30"},
+    {"class_key": "A-3", "original_balance": "542400000", "coupon_type": "fixed", "fixed_rate_pct": "3.91"},
+    {"class_key": "A-4", "original_balance": "94800000", "coupon_type": "fixed", "fixed_rate_pct": "3.95"},
+    {"class_key": "B", "original_balance": "47370000", "coupon_type": "fixed", "fixed_rate_pct": "4.24"},
+    {"class_key": "C", "original_balance": "31570000", "coupon_type": "fixed", "fixed_rate_pct": "0.00"}
+  ],
+  "triggers": [
+    {"trigger_type": "Delinquency trigger (asset representations review)", "thresholds_pct": ["0.80", "1.30", "2.40", "4.55"]}
+  ],
+  "coverage_tests": [],
+  "priority_of_payments": {"start_page": 82, "step_count": 11},
+  "evidence": {
+    "deal_name": "cover (pdf 1)",
+    "closing_date": "p9 Closing Date: on or about September 26, 2025",
+    "payment_frequency": "p10: 15th day of each month",
+    "cleanup_call_pct": "p10 / p82: pool balance 10% or less of the initial pool balance",
+    "tranches": "p9 summary table; cover table total $1,578,940,000; Class C retained, 0.00%",
+    "triggers": "p70: 0.80% first 12 months, 1.30%, 2.40%, 4.55%. Voting trigger (5% of noteholders) excluded as procedural.",
+    "ratings_wal": "not stated: ratings from unnamed NRSROs (p15); WAL only as prepayment-speed sensitivity tables"
+  }
+}

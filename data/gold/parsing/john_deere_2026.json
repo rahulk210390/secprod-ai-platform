@@ -1,0 +1,67 @@
+{
+  "id": "john_deere_2026",
+  "reviewed": true,
+  "review_notes": "Verified 2026-09-27: every step of every waterfall below was confirmed, in order, against an independent text extraction (pdfplumber, scripts/crosscheck_gold.py); Ford p82-84 and Capital One p134-140 were also read in full against the PDF. Pending: human sign-off by the project owner.",
+  "page_count": 148,
+  "sections": [
+    "credit_enhancement",
+    "description_of_notes",
+    "events_of_default",
+    "priority_of_payments",
+    "trigger_events"
+  ],
+  "waterfalls": [
+    {
+      "title_contains": "Amounts allocated to payment of the principal of the notes will be applied in th",
+      "start_page": 7,
+      "steps": [
+        "to payment in full of the class A-1 notes;",
+        "to payment in full of each of the class A2A notes and the cl",
+        "to payment in full of the class A-3 notes; and",
+        "to payment in full of the class A-4 notes."
+      ]
+    },
+    {
+      "title_contains": "Priority of Payments",
+      "start_page": 8,
+      "steps": [
+        "administration fee to the administrator;",
+        "review fees to the asset representations reviewer, in an agg",
+        "interest on the notes;",
+        "principal on the notes in the priority described under 'Desc",
+        "amount, if any, required to be deposited into the reserve ac",
+        "servicing fee to the servicer; provided that if JDCC or an a",
+        "any unpaid fees, expenses and indemnification amounts due to",
+        "any unpaid fees, expenses and indemnification amounts due to",
+        "any unpaid fees, expenses and indemnification amounts due to",
+        "remaining amounts, if any, to the certificate distribution a"
+      ]
+    },
+    {
+      "title_contains": "(ii) the note monthly principal distributable amount in the following order of p",
+      "start_page": 95,
+      "steps": [
+        "to the class A-1 noteholders until the principal amount of t",
+        "to each of the class A-2A and class A-2B noteholders, ratabl",
+        "to the class A-3 noteholders until the principal amount of t",
+        "to the class A-4 noteholders until the principal amount of t"
+      ]
+    },
+    {
+      "title_contains": "Distributions of the total distribution amount shall be made in the following or",
+      "start_page": 95,
+      "steps": [
+        "to the administrator, the administration fee and all unpaid ",
+        "to the asset representations reviewer, the amount of any rev",
+        "to the note distribution account, accrued and unpaid interes",
+        "to the note distribution account, the note monthly principal",
+        "to the reserve account, the amount, if any, required to be d",
+        "to the servicer, the servicing fee and all unpaid servicing ",
+        "to the indenture trustee, any unpaid fees, expenses and inde",
+        "to the owner trustee, any unpaid fees, expenses and indemnif",
+        "to the asset representations reviewer, any unpaid fees, expe",
+        "any remaining amounts to the certificate distribution accoun"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "id": "capital_one_2025",
+  "reviewed": true,
+  "review_notes": "Verified 2026-09-27: every step of every waterfall below was confirmed, in order, against an independent text extraction (pdfplumber, scripts/crosscheck_gold.py); Ford p82-84 and Capital One p134-140 were also read in full against the PDF. Pending: human sign-off by the project owner.",
+  "page_count": 226,
+  "sections": [
+    "credit_enhancement",
+    "events_of_default",
+    "priority_of_payments",
+    "trigger_events"
+  ],
+  "waterfalls": [
+    {
+      "title_contains": "Any money or other property collected by the indenture trustee in connection wit",
+      "start_page": 126,
+      "steps": [
+        "to pay all compensation owed to the indenture trustee for se",
+        "to pay the amounts of interest and principal then due and un",
+        "to pay any servicing fees owed to the applicable servicer an",
+        "to pay any remaining amounts to COMET."
+      ]
+    },
+    {
+      "title_contains": "Application of Card Series Finance Charge Amounts",
+      "start_page": 134,
+      "steps": [
+        "to make the targeted deposits to the interest funding accoun",
+        "to make the targeted deposits to the interest funding accoun",
+        "to make the targeted deposits to the interest funding accoun",
+        "to pay the portion of the master trust servicing fee allocab",
+        "to make the targeted deposits to the interest funding accoun",
+        "to be treated as Card series Principal Amounts in an amount ",
+        "to be treated as Card series Principal Amounts in an amount ",
+        "to make the targeted deposits to the accumulation reserve ac",
+        "to make the targeted deposits to the Class C reserve account",
+        "to make the targeted deposits to the Class D reserve account",
+        "to make any other payment or deposit required by any class o",
+        "to be treated as shared excess Finance Charge Amounts; and",
+        "to Capital One Funding, as transferor, or any other transfer"
+      ]
+    },
+    {
+      "title_contains": "If there are Card series Finance Charge Amounts available to reimburse any Nomin",
+      "start_page": 137,
+      "steps": [
+        "to each tranche of Class A notes,",
+        "to each tranche of Class B notes,",
+        "to each tranche of Class C notes, and",
+        "to each tranche of Class D notes."
+      ]
+    },
+    {
+      "title_contains": "Application of Card Series Principal Amounts",
+      "start_page": 138,
+      "steps": [
+        "Class A Interest Funding Account Shortfalls. First, for each",
+        "Class B Interest Funding Account Shortfalls. Second, for eac",
+        "Class C Interest Funding Account Shortfalls. Third, for each",
+        "Class A Servicing Fee Shortfalls. Fourth, for each month, if",
+        "Class B Servicing Fee Shortfalls. Fifth, for each month, if ",
+        "Class C Servicing Fee Shortfalls. Sixth, for each month, if ",
+        "Principal Funding Account. Seventh, remaining Card series Pr",
+        "Shared Excess Principal Amounts. Eighth, remaining Card seri",
+        "Transferor. Ninth, remaining Card series Principal Amounts w"
+      ]
+    },
+    {
+      "title_contains": "For each month, if Card series Principal Amounts are applied to cover shortfalls",
+      "start_page": 140,
+      "steps": [
+        "to the Class B notes, in an amount up to the Class A Availab",
+        "any remaining amounts to the Class C notes, in an amount up ",
+        "any remaining amounts to the Class D notes, in an amount up "
+      ]
+    },
+    {
+      "title_contains": "For each month, if Card series Principal Amounts are applied to cover shortfalls",
+      "start_page": 141,
+      "steps": [
+        "to the Class B notes, in an amount up to the Class A Availab",
+        "any remaining amounts to the Class C notes, in an amount up ",
+        "any remaining amounts to the Class D notes, in an amount up "
+      ]
+    },
+    {
+      "title_contains": "To the extent that shared excess Finance Charge Amounts exceed those shortfalls,",
+      "start_page": 150,
+      "steps": [
+        "by other series of notes not included in Excess Finance Char",
+        "by other series of investor certificates issued by the maste",
+        "by other series of notes issued by COMET not included in COM"
+      ]
+    }
+  ]
+}

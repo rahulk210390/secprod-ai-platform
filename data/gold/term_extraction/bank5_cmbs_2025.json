@@ -1,0 +1,42 @@
+{
+  "id": "bank5_cmbs_2025",
+  "reviewed": true,
+  "review_notes": "Built 2026-09-27 from the document text without the LLM, before any model output was seen. Tranches are all principal-balance classes, offered and non-offered; interest-only notional classes (X-A, X-B, X-D) and the residual Class R are excluded. The printed $784,938,000 is the offered classes only, so the tranche sum (884,437,752) is expected NOT to match it and the deal should route to needs_review. Pending: human sign-off by the project owner.",
+  "deal_name": "BANK5 2025-5YR14",
+  "closing_date": "2025-04-24",
+  "asset_class": "cmbs",
+  "payment_frequency": "monthly",
+  "cleanup_call_pct": "1.0",
+  "stated_total_balance": "784938000",
+  "tranches": [
+    {"class_key": "A-1", "original_balance": "5730000", "coupon_type": "fixed", "fixed_rate_pct": "4.82200", "wal_years": "2.43"},
+    {"class_key": "A-2", "original_balance": "120500000", "coupon_type": "fixed", "fixed_rate_pct": "5.16500", "wal_years": "4.70"},
+    {"class_key": "A-3", "original_balance": "492876000", "coupon_type": "fixed", "fixed_rate_pct": "5.64600", "wal_years": "4.92"},
+    {"class_key": "A-S", "original_balance": "88444000", "coupon_type": "fixed", "fixed_rate_pct": "6.07200", "wal_years": "4.98"},
+    {"class_key": "B", "original_balance": "44222000", "coupon_type": "fixed", "fixed_rate_pct": "6.47400", "wal_years": "4.98"},
+    {"class_key": "C", "original_balance": "33166000", "coupon_type": "fixed", "fixed_rate_pct": "6.46300", "wal_years": "4.98"},
+    {"class_key": "D", "original_balance": "9950000", "coupon_type": "fixed", "fixed_rate_pct": "4.25000", "wal_years": "4.98"},
+    {"class_key": "E", "original_balance": "13488000", "coupon_type": "fixed", "fixed_rate_pct": "4.25000", "wal_years": "4.98"},
+    {"class_key": "F-RR", "original_balance": "14151000", "coupon_type": "fixed", "fixed_rate_pct": "6.52900", "wal_years": "4.98"},
+    {"class_key": "G-RR", "original_balance": "11055000", "coupon_type": "fixed", "fixed_rate_pct": "6.52900", "wal_years": "4.98"},
+    {"class_key": "J-RR", "original_balance": "12161000", "coupon_type": "fixed", "fixed_rate_pct": "6.52900", "wal_years": "4.98"},
+    {"class_key": "K-RR", "original_balance": "38694752", "coupon_type": "fixed", "fixed_rate_pct": "6.52900", "wal_years": "4.98"}
+  ],
+  "triggers": [
+    {"trigger_type": "Asset Review Trigger", "thresholds_pct": ["25.0"]},
+    {"trigger_type": "Control Termination Event", "thresholds_pct": ["25"]},
+    {"trigger_type": "Consultation Termination Event", "thresholds_pct": ["25"]},
+    {"trigger_type": "Operating Advisor Consultation Event", "thresholds_pct": ["25"]}
+  ],
+  "coverage_tests": [],
+  "priority_of_payments": {"start_page": 340, "step_count": 30},
+  "evidence": {
+    "deal_name": "cover: BANK5 2025-5YR14 as Issuing Entity",
+    "closing_date": "p34 Relevant Dates: Closing Date on or about April 24, 2025",
+    "payment_frequency": "cover: monthly distributions",
+    "cleanup_call_pct": "p506 Termination: aggregate Stated Principal Balance less than 1.0% of the Initial Pool Balance",
+    "tranches": "p3 summary table (rates are initial pass-through rates; WAC-cap and WAC classes recorded with their initial rate as fixed_rate_pct)",
+    "triggers": "p468 Asset Review Trigger 25.0%; p457 Control / Consultation Termination Events 25%; p332 Operating Advisor Consultation Event 25% or less. Voting thresholds (5.0%, 25%, 75% of voting rights) excluded.",
+    "ratings_wal": "WAL stated per class in the p3 table; ratings not stated"
+  }
+}

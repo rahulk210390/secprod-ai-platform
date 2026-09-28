@@ -29,7 +29,9 @@ from secai.telemetry import (
     job_span_name,
     job_trace,
     llm_generation,
+    set_span_attributes,
 )
+from secai.telemetry.attributes import LANGFUSE_METADATA_PREFIX
 from secai.telemetry.pii import contains_pii
 
 
@@ -98,6 +100,21 @@ class TestRootTrace:
         assert attrs[ATTR_DOC_TYPE] == "prospectus"
         assert attrs[ATTR_PROMPT_VERSION] == "v3"
         assert attrs[ATTR_MODEL] == "Qwen/Qwen2.5-7B-Instruct-AWQ"
+
+    def test_attributes_are_mirrored_where_langfuse_keeps_them(
+        self, exporter: InMemorySpanExporter
+    ) -> None:
+        # Langfuse drops unrecognised OTel attributes; only keys under its
+        # metadata prefix are stored. Found in JOB-03: no secai.* attribute
+        # had ever reached the Langfuse UI.
+        with job_trace("term_extraction", deal_id="SYNTH-2024-1") as root_span:
+            set_span_attributes(root_span, {"secai.parse.page_count": 180})
+
+        attrs = by_name(finished(exporter), "job.term_extraction").attributes or {}
+        assert attrs[f"{LANGFUSE_METADATA_PREFIX}{ATTR_DEAL_ID}"] == "SYNTH-2024-1"
+        assert attrs[f"{LANGFUSE_METADATA_PREFIX}{ATTR_JOB}"] == "term_extraction"
+        assert attrs["secai.parse.page_count"] == 180
+        assert attrs[f"{LANGFUSE_METADATA_PREFIX}secai.parse.page_count"] == 180
 
     def test_unset_attributes_are_omitted_not_stringified(
         self, exporter: InMemorySpanExporter
@@ -197,6 +214,18 @@ class TestExportMasking:
         # Deal-level data must still be there.
         assert "SYNTH-2024-1" in payload
         assert "250000000" in payload or "250_000_000" in payload
+
+    def test_sensitive_attribute_is_removed_under_both_keys(
+        self, exporter: InMemorySpanExporter
+    ) -> None:
+        # Mirroring for Langfuse must not open a side door around the masker.
+        with job_trace("term_extraction"), job_span(SPAN_PARSE) as child:
+            set_span_attributes(child, {"borrower_id": "B-1234567", "secai.parse.page_count": 3})
+
+        parse = by_name(finished(exporter), SPAN_PARSE)
+        payload = json.dumps(dict(parse.attributes or {}))
+        assert "B-1234567" not in payload
+        assert (parse.attributes or {})[f"{LANGFUSE_METADATA_PREFIX}secai.parse.page_count"] == 3
 
 
 class TestTraceContextPropagation:

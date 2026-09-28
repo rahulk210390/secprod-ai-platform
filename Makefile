@@ -12,7 +12,7 @@ JOB     ?=
 
 .PHONY: help setup up up-core down restart ps logs test test-unit test-integration \
         pull-llm up-llm down-llm lint fmt typecheck check eval langfuse-auth \
-        secrets env-check env-restore clean
+        secrets env-check env-restore fetch-samples clean
 
 help: ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -20,7 +20,7 @@ help: ## Show available targets
 
 # --------------------------------------------------------------- environment
 setup: ## Create the venv, install deps and dev tools, install pre-commit hooks
-	$(UV) sync --all-groups
+	$(UV) sync --all-groups --extra parsing
 	@[ -f .env ] || (cp .env.example .env && echo "created .env from .env.example — fill in the secrets")
 	-$(PY) pre-commit install
 
@@ -35,6 +35,9 @@ env-restore: ## Rebuild .env from the running containers (secrets live only ther
 
 langfuse-auth: ## Print LANGFUSE_AUTH (base64 of the key pair) from .env
 	@$(PY) python scripts/langfuse_auth.py
+
+fetch-samples: ## Download the public EDGAR samples and print them to PDF
+	$(PY) python scripts/fetch_samples.py
 
 # -------------------------------------------------------------------- docker
 up: ## Start the full stack (includes vLLM; needs an NVIDIA GPU)

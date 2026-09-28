@@ -61,6 +61,7 @@ target one-for-one:
 | `secrets` | Print freshly generated Langfuse server secrets for `.env` |
 | `langfuse-auth` | Print `LANGFUSE_AUTH` (base64 of the key pair) from `.env` |
 | `env-check` / `env-restore` | Check `.env` against the running stack, or rebuild it from the containers |
+| `fetch-samples` | Download the public EDGAR sample prospectuses and print them to PDF (JOB-03) |
 | `up` / `up-core` | Start the stack, with / without vLLM |
 | `down` / `restart` / `ps` / `logs` | Lifecycle and inspection |
 | `test` | Unit suite with coverage (no network) |
@@ -390,9 +391,11 @@ with LLMClient() as client:
 
 **What it guarantees**
 
-- **Schema-constrained output.** The Pydantic model becomes a `guided_json`
-  payload, so vLLM constrains the sampler itself; the result is then validated
-  again on the way back. Free-text parsing of model output is not allowed.
+- **Schema-constrained output.** The Pydantic model becomes a standard
+  `response_format: json_schema` payload, so vLLM constrains the sampler
+  itself; the result is then validated again on the way back. Free-text
+  parsing of model output is not allowed. (vLLM 0.30 silently ignores the
+  older `guided_json` parameter; a unit test asserts it is never sent.)
 - **Retries only where they help.** Connection faults, timeouts, 5xx and 429
   retry with exponential backoff. A 4xx or a schema violation does not — the
   same request produces the same failure, so retrying burns tokens for nothing.
@@ -419,3 +422,158 @@ makes 20 consecutive live calls and asserts every one returns a valid object.
 > `httpx`, so trace context is injected via `extra_headers` rather than a custom
 > `http_client`, and unit tests mock at the OpenAI client seam rather than with
 > `respx`.
+
+### JOB-03 — Document Parsing
+
+PDF → ordered blocks and tables with page numbers → sections → waterfalls.
+
+```powershell
+uv run secai parse data/samples/ford_auto_2025.pdf --out ford.json --deal-id FORD-2025
+```
+
+```python
+from secai.parsing import parse_document
+
+doc = parse_document(Path("prospectus.pdf"))
+for section in doc.sections_named("priority_of_payments"):
+    text = doc.section_text(section)          # the chunk JOB-04 sends to the LLM
+for waterfall in doc.waterfalls:
+    for step in waterfall.steps:               # in order, with page citations
+        print(step.ordinal, step.marker, step.page_label, step.text)
+```
+
+**What it produces** (`secai.parsing.models`)
+
+- **Blocks** in reading order (heading, text, list item, table, caption).
+  Every block has two page numbers: `page` (the PDF page a viewer opens) and
+  `page_label` (the number printed on the page, "78" or "S-12", which is what
+  an analyst cites). They differ, since covers and front matter shift them.
+- **Sections** by heading, not by token count. A section runs to the next
+  heading at its level or above, so "DESCRIPTION OF THE NOTES" contains its
+  "Priority of Payments" subsection. Headings map to canonical names
+  (`priority_of_payments`, `post_acceleration_priority_of_payments`,
+  `trigger_events`, `events_of_default`, `description_of_notes`,
+  `credit_enhancement`) so later jobs ask for a section by meaning, not by
+  each issuer's wording.
+- **Waterfalls**, ordered steps found three ways, all seen in real filings:
+  numbered lists (`(1) … (11)`), ordinal prose (`First, … Second, …`, several
+  steps per paragraph) and tables. A waterfall is located by its heading or by
+  its lead-in sentence ("… in the following order of priority:"); steps must
+  count up from 1 without gaps, so a cross-reference like "items (1) through
+  (7)" never extends a list. A table counts only inside a priority-of-payments
+  section or when captioned as one, because static-pool tables also number
+  their rows.
+
+**How it parses.** Docling (layout + table-structure models, CPU) converts
+`SECAI_PARSING_BATCH_PAGES` pages at a time to bound memory; page numbers stay
+absolute across batches. Tables Docling locates but cannot structure are
+re-read from the same region with pdfplumber. The table of contents and
+running headers are dropped; footers become page labels.
+
+**Sample documents.** Five public SEC EDGAR prospectuses (auto loan,
+equipment, device payment, credit card, CMBS), listed with hashes in
+`data/samples/manifest.json`. EDGAR serves HTML, so `make fetch-samples`
+downloads each filing and prints it to PDF with headless Edge/Chrome (the
+platform's real inputs are PDFs). The SEC requires a declared User-Agent: set
+`SEC_USER_AGENT="<name> <email>"` in `.env`. The documents are never
+committed.
+
+**Tests**
+
+- `make test`: hermetic unit tests. Docling documents are built in code, so
+  no models run.
+- `make test-integration`: Docling for real on the committed synthetic PDF
+  (`tests/fixtures/parsing/`, regenerate with
+  `scripts/make_parsing_fixtures.py`), and each sample's waterfalls against
+  its gold file in `data/gold/parsing/`, asserting step order. Docling's
+  output is cached in `data/samples/.cache/` by file hash, so only the first
+  run is slow; delete the cache to re-run Docling.
+- `scripts/parse_samples.py` parses every sample, prints timing and
+  waterfalls, and with `--drafts` writes gold drafts (`"reviewed": false`)
+  for a person to check.
+
+**Traces.** `job.document_parsing` (root) → `parse` (page count, table count,
+fallback count, batch size, duration, document sha256) → `chunk` (section and
+waterfall counts). Only the file name reaches the trace, never a local path.
+In the Langfuse UI the `secai.*` attributes appear under each observation's
+**metadata**: Langfuse drops OTel attributes it does not recognise, so
+`telemetry.set_span_attributes` also writes each one under
+`langfuse.observation.metadata.` (PII masking applies to both names).
+
+**Configuration**: `SECAI_PARSING_BATCH_PAGES` (20), `SECAI_PARSING_TABLE_FALLBACK`
+(true), `SECAI_PARSING_DO_OCR` (false; prospectuses are born-digital),
+`SECAI_PARSING_NUM_THREADS` (4).
+
+> **Memory:** Docling needs ~1-1.5 GB and runs at ~3 s/page on CPU. On a
+> 16 GB machine, stop Docker (`make down`) and vLLM before parsing large
+> documents; the first attempt with the full stack up was killed for lack
+> of memory.
+
+### JOB-04 — Deal Term Extraction
+
+**Status: BLOCKED on model size.** The pipeline is complete and tested; the
+local 3B model does not reach the accuracy thresholds (see Metrics).
+
+```powershell
+uv run secai extract data/samples/ford_auto_2025.pdf --out ford_terms.json `
+    --gold data/gold/term_extraction/ford_auto_2025.json
+.\make.ps1 eval -Job 04              # all gold deals; report in eval/reports/
+```
+
+**How it works**
+
+1. **Parse** with JOB-03 (the Docling output is reused from the per-hash cache).
+2. **Retrieve**: pick, per question, only the relevant excerpts, labelled
+   with printed page numbers and sized to the model's window. Tranches come
+   from the tranche tables and the cover line with the printed total; facts
+   from sections such as "Closing Date" and key/value summary tables;
+   triggers from trigger, amortization, asset-review and CMBS
+   control-termination sections. Risk-factor sections never count.
+3. **Extract**: one structured-output call per excerpt
+   (`prompts/term_extraction_*.md`). The model **copies values exactly as
+   printed** ("$ 320,400,000", "30-day average SOFR + 0.30%"); it never
+   converts or calculates.
+4. **Assemble**: deterministic code parses every printed value into numbers
+   and dates, and **finds each value's citation by searching the document**.
+   A value that is not in the source gets no citation. When the model names a
+   trigger but does not quote its limit, code takes the percentage from the
+   sentence that names it (voting and historical sentences excluded). The
+   priority of payments is JOB-03's verified waterfall, never the model's.
+5. **Validate**: required fields; tranche balances add up to the printed
+   total; plausible ranges; every populated field cited; no duplicate
+   classes or incomplete coupons. Any failure routes the deal to
+   `needs_review`.
+6. **Persist and score** on the `job.term_extraction` trace.
+
+Units: rates and thresholds are percent (`4.057` means 4.057%); balances are
+currency units.
+
+**Guarantees, tested**
+
+- 18 injected model mistakes (a balance off by one, a rate as a fraction, a
+  dropped floating index, an invented tranche, a unit-less threshold, …):
+  **100% routed to `needs_review`** (`tests/unit/test_term_validation.py`).
+- Live vLLM integration test: every value the model returned is either cited
+  to a page or flagged.
+
+**Metrics** (`eval/reports/04_*.md`, 5 public EDGAR deals, Qwen2.5-3B-AWQ)
+
+| | Result | Threshold |
+|---|---|---|
+| critical-field F1 (balances, coupons, trigger thresholds) | 0.726 | 0.95 |
+| overall field F1 | 0.697 | 0.90 |
+| tranche balance / coupon precision | 1.00 / 1.00 in the best run | |
+
+Scores move by ±0.3 per deal between runs with small prompt changes, which
+is itself a finding about a 3B model. The eval re-runs deterministically from
+the extraction cache for a fixed prompt set and model.
+
+**Traces**: `job.term_extraction` → `parse`, `chunk`, `retrieve`, one
+`llm.extract` generation per excerpt (with vLLM's `llm_request` span under
+each), `validate`, `persist`. Scores: `field_f1`, `critical_field_f1`,
+`validation_pass`, `needs_review`, `latency_s`, `cost_tokens`.
+
+**Configuration**: `VLLM_MAX_MODEL_LEN` (the app sizes excerpts to it, and
+refuses to start if `VLLM_MAX_TOKENS` leaves no room), `VLLM_MAX_TOKENS`,
+`VLLM_MODEL`. Extraction results are cached per (document hash, prompt set,
+model) under `data/samples/.cache/extraction/`.

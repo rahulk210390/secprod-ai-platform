@@ -1,0 +1,30 @@
+{
+  "id": "capital_one_2025",
+  "reviewed": true,
+  "review_notes": "Built 2026-09-27 from the document text without the LLM, before any model output was seen. One tranche is issued from the master trust (Class A(2025-2) of the Card series). Pending: human sign-off by the project owner.",
+  "deal_name": "Capital One Multi-asset Execution Trust",
+  "closing_date": "2025-09-16",
+  "asset_class": "credit_card",
+  "payment_frequency": "monthly",
+  "cleanup_call_pct": "5",
+  "stated_total_balance": "750000000",
+  "tranches": [
+    {"class_key": "A(2025-2)", "original_balance": "750000000", "coupon_type": "fixed", "fixed_rate_pct": "4.02"}
+  ],
+  "triggers": [
+    {"trigger_type": "Delinquency trigger (asset representations review)", "thresholds_pct": ["9.00"]},
+    {"trigger_type": "Early redemption event (excess spread)", "thresholds_pct": []}
+  ],
+  "coverage_tests": [],
+  "priority_of_payments": {"start_page": 134, "step_count": 13},
+  "evidence": {
+    "deal_name": "cover: Capital One Multi-asset Execution Trust, Card series",
+    "closing_date": "cover table: expected issuance date September 16, 2025",
+    "payment_frequency": "cover table: 15th day of each calendar month",
+    "cleanup_call_pct": "p112 Optional Redemption: less than 5% of the highest outstanding dollar principal amount ('clean-up call')",
+    "tranches": "cover table: $750,000,000, 4.02% per year",
+    "triggers": "p149 delinquency trigger rate 9.00%; p113 early redemption: 3-month average excess spread below the required amount (currently zero, no percentage)",
+    "priority_of_payments": "finance charge waterfall p134 (13 steps); the principal waterfall p138 (9 steps) is the second one",
+    "ratings_wal": "not stated"
+  }
+}

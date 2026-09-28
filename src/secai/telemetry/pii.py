@@ -23,6 +23,7 @@ from re import Pattern
 from typing import Any, Final
 
 from secai.config import PIISettings, get_settings
+from secai.telemetry.attributes import LANGFUSE_METADATA_PREFIX
 
 # Substrings that mark a key as borrower-level. Matched case-insensitively
 # against the normalised key, so "borrowerName" and "borrower_name" both hit.
@@ -125,8 +126,13 @@ class Masker:
 
     # -- key handling ------------------------------------------------------
     def is_sensitive_key(self, key: str) -> bool:
-        """True if a field with this name must be redacted outright."""
-        normalised = _normalise_key(key)
+        """True if a field with this name must be redacted outright.
+
+        Span attributes are mirrored under Langfuse's metadata prefix, so the
+        prefix is ignored: ``langfuse.observation.metadata.borrower_id`` is as
+        sensitive as ``borrower_id``.
+        """
+        normalised = _normalise_key(key.removeprefix(LANGFUSE_METADATA_PREFIX))
         if normalised in self.field_names:
             return True
         return any(hint in normalised for hint in self.key_hints)
